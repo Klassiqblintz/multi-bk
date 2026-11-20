@@ -4,6 +4,7 @@ import MainLayout from './components/MainLayout'
 import LandingPage from './pages/LandingPage'
 import TemplatePicker from './pages/TemplatePicker'
 import AccountCreate from './pages/AccountCreate'
+import MyAccounts from './pages/MyAccounts'
 import BankDashboard from './pages/BankDashboard'
 import BankLogin from './pages/BankLogin'
 import AdminPanel from './pages/AdminPanel'
@@ -16,6 +17,7 @@ export default function App() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<LandingPage />} />
             <Route path="/templates" element={<TemplatePicker />} />
+            <Route path="/accounts" element={<MyAccounts />} />
             <Route path="/create" element={<AccountCreate />} />
             <Route path="/dashboard/:accountId" element={<BankDashboard />} />
             <Route path="/admin" element={<AdminPanel />} />

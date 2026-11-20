@@ -20,6 +20,8 @@ import {
   User as UserIcon,
 } from 'lucide-react'
 import { BANK_TEMPLATES, getCountries, getTemplate, type BankTemplate } from '../lib/bankTemplates'
+import { useAuth } from '../contexts/AuthContext'
+import { getAccounts as supabaseGetAccounts } from '../lib/supabase-api'
 
 interface SidebarProps {
   collapsed?: boolean
@@ -44,6 +46,7 @@ interface AccountData {
   createdAt: string
   status: string
   tagline: string
+  user_id?: string
 }
 
 const COUNTRIES = getCountries()
@@ -80,12 +83,51 @@ function getAccount(): AccountData | null {
 export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarProps) {
   const navigate = useNavigate()
   const location = useLocation()
+  const { userId } = useAuth()
   const [collapsed, setCollapsed] = useState(!!collapsedProp)
   const [search, setSearch] = useState('')
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showAccounts, setShowAccounts] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
+
+  const [userAccounts, setUserAccounts] = useState<AccountData[]>([])
+
+  // Load user's accounts from Supabase
+  useEffect(() => {
+    const load = async () => {
+      if (!userId) {
+        setUserAccounts([])
+        return
+      }
+      try {
+        const data = await supabaseGetAccounts(userId)
+        const mapped: AccountData[] = data.map((a: any) => ({
+          id: a.id,
+          templateId: a.template_id,
+          templateName: a.template_name,
+          accountHolder: a.account_holder,
+          balance: a.balance,
+          currency: a.currency,
+          symbol: a.symbol,
+          primaryColor: a.primary_color,
+          secondaryColor: a.secondary_color,
+          logoUrl: a.logo_url || '',
+          country: a.country,
+          countryCode: a.country_code,
+          layout: 'modern',
+          features: [],
+          createdAt: a.created_at || '',
+          status: a.status || 'active',
+          tagline: 'Secure Online Banking',
+        }))
+        setUserAccounts(mapped)
+      } catch {
+        setUserAccounts([])
+      }
+    }
+    load()
+  }, [userId])
 
   const isDashboard = location.pathname.startsWith('/dashboard/')
   const isCreating = location.pathname.startsWith('/create')
@@ -154,8 +196,10 @@ export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarP
     return matchSearch && matchCountry
   })
 
-  // ACCOUNTS
+  // ACCOUNTS (from Supabase + localStorage fallback)
   const accounts = useMemo(() => {
+    if (userAccounts.length > 0) return userAccounts
+    // Fallback to localStorage if no Supabase accounts yet
     const items: AccountData[] = []
     const stored = localStorage.getItem('multiBank_currentAccount')
     if (stored) {
@@ -173,7 +217,7 @@ export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarP
       }
     }
     return items
-  }, [])
+  }, [userAccounts])
 
   // ============ DASHBOARD SIDEBAR ============
   if (isDashboard && account) {
@@ -386,6 +430,7 @@ export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarP
           <div className="p-2 mt-2">
             {[
               { path: '/', label: 'Home', icon: Home },
+              { path: '/accounts', label: 'My Accounts', icon: User },
               { path: '/templates', label: 'Templates', icon: LayoutGrid },
               { path: '/admin', label: 'Admin Panel', icon: BarChart3 },
             ].map(item => {
@@ -415,6 +460,7 @@ export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarP
           <div className="flex flex-col items-center gap-1 p-2 mt-2">
             {[
               { path: '/', label: 'Home', icon: Home },
+              { path: '/accounts', label: 'My Accounts', icon: User },
               { path: '/templates', label: 'Templates', icon: LayoutGrid },
               { path: '/admin', label: 'Admin Panel', icon: BarChart3 },
             ].map(item => {
@@ -578,7 +624,7 @@ export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarP
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Your Accounts</span>
                   <button
-                    onClick={() => handleNav('/create')}
+                  onClick={() => handleNav('/accounts')}
                     className="text-xs text-blue-400 hover:text-blue-300 transition flex items-center gap-1"
                   >
                     <Plus className="w-3 h-3" /> New
