@@ -39,6 +39,7 @@ import {
   ShieldAlert,
   Loader2,
   KeyRound,
+  Mail,
 } from 'lucide-react'
 import { getTemplate } from '../lib/bankTemplates'
 import BankDashboardLayout from '../components/BankDashboardLayout'
@@ -248,6 +249,8 @@ export default function BankDashboard() {
   const [enteredOtp, setEnteredOtp] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmNewPass, setConfirmNewPass] = useState('')
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPass, setShowConfirmPass] = useState(false)
   const [passwordResetDone, setPasswordResetDone] = useState(false)
 
   const handleForgotPassword = (e: React.FormEvent) => {
@@ -337,22 +340,26 @@ export default function BankDashboard() {
                 <form onSubmit={(e) => { e.preventDefault(); setIsLoggedIn(true); }} className="space-y-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Username or Email</label>
-                    <input
-                      type="text"
-                      value={loginEmail}
-                      onChange={e => setLoginEmail(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                      placeholder="Enter your email or username"
-                    />
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={loginEmail}
+                        onChange={e => setLoginEmail(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        placeholder="Enter your email or username"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
                     <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type={showPassword ? 'text' : 'password'}
                         value={loginPass}
                         onChange={e => setLoginPass(e.target.value)}
-                        className="w-full px-3 py-2.5 pr-10 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        className="w-full pl-9 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                         placeholder="Enter your password"
                       />
                       <button
@@ -445,23 +452,43 @@ export default function BankDashboard() {
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">New Password</label>
-                        <input
-                          type="password"
-                          value={newPassword}
-                          onChange={e => setNewPassword(e.target.value)}
-                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                          placeholder="Min 6 characters"
-                        />
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type={showNewPassword ? 'text' : 'password'}
+                            value={newPassword}
+                            onChange={e => setNewPassword(e.target.value)}
+                            className="w-full pl-9 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            placeholder="Min 6 characters"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Confirm Password</label>
-                        <input
-                          type="password"
-                          value={confirmNewPass}
-                          onChange={e => setConfirmNewPass(e.target.value)}
-                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                          placeholder="Min 6 characters"
-                        />
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Confirm New Password</label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type={showConfirmPass ? 'text' : 'password'}
+                            value={confirmNewPass}
+                            onChange={e => setConfirmNewPass(e.target.value)}
+                            className="w-full pl-9 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            placeholder="Min 6 characters"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPass(!showConfirmPass)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
                       <button
                         type="submit"

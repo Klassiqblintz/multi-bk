@@ -88,8 +88,45 @@ export default function AccountCreate() {
     setSubmitting(false)
   }
 
-  if (submitted) {
-    const currentAcc = JSON.parse(localStorage.getItem('multiBank_currentAccount') || '{}')
+  const [createdAccount, setCreatedAccount] = useState<{ id: string } | null>(null)
+
+  const handleCreate = () => {
+    if (!holderName || !balance) return
+    setSubmitting(true)
+    setError('')
+
+    // Save account to localStorage
+    const newAcc = {
+      id: 'acc_' + Math.random().toString(36).substr(2, 9),
+      templateId: template.id,
+      templateName: customName || template.name,
+      accountHolder: customName || holderName || template.name,
+      balance: parseInt(balance),
+      currency: template.currency,
+      symbol: template.symbol,
+      primaryColor: customColors.primary,
+      secondaryColor: customColors.secondary,
+      logoUrl: '',
+      country: template.country,
+      countryCode: template.countryCode,
+      layout: template.layout,
+      features: template.features,
+      tagline: template.tagline,
+      createdAt: new Date().toISOString(),
+      status: 'active' as const,
+    }
+
+    // Get existing accounts and add new one
+    const existing = JSON.parse(localStorage.getItem('multiBank_accounts') || '[]')
+    const allAccounts = [...existing, newAcc]
+    localStorage.setItem('multiBank_accounts', JSON.stringify(allAccounts))
+
+    setCreatedAccount({ id: newAcc.id })
+    setSubmitted(true)
+    setSubmitting(false)
+  }
+
+  if (submitted && createdAccount) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto">
@@ -113,7 +150,7 @@ export default function AccountCreate() {
                 </span>
               </div>
               <div className="text-left">
-                <div className="font-bold text-gray-900">{currentAcc.templateName || template.name}</div>
+                <div className="font-bold text-gray-900">{customName || template.name}</div>
                 <div className="text-xs text-gray-400">{holderName}</div>
               </div>
             </div>
@@ -128,7 +165,7 @@ export default function AccountCreate() {
             <Link to="/templates" className="flex-1 bg-gray-100 text-gray-700 font-medium py-2.5 rounded-lg hover:bg-gray-200 transition text-center">
               Browse More
             </Link>
-            <Link to={`/dashboard/${currentAcc.id}`} className="flex-1 bg-blue-600 text-white font-medium py-2.5 rounded-lg hover:bg-blue-700 transition text-center">
+            <Link to={`/dashboard/${createdAccount.id}`} className="flex-1 bg-blue-600 text-white font-medium py-2.5 rounded-lg hover:bg-blue-700 transition text-center">
               Open Dashboard →
             </Link>
           </div>
@@ -279,7 +316,7 @@ export default function AccountCreate() {
 
             {/* Submit */}
             <button
-              onClick={handleSubmit}
+              onClick={handleCreate}
               disabled={!holderName || !balance || submitting}
               className="w-full py-3 text-base text-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
               style={{ backgroundColor: template.primaryColor }}

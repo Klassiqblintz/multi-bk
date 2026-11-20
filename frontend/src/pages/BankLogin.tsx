@@ -153,7 +153,7 @@ export default function BankLogin() {
           type={type}
           value={value}
           onChange={e => onChange(e.target.value)}
-          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          className={`w-full px-3 py-2.5 ${showToggle ? 'pr-10' : ''} bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500`}
           placeholder={placeholder}
           required={required}
         />
@@ -295,8 +295,8 @@ export default function BankLogin() {
               <form onSubmit={handleRegister} className="space-y-4">
                 {renderInput('Full Name', regName, setRegName, 'text', 'John Doe', <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, undefined)}
                 {renderInput('Email', regEmail, setRegEmail, 'email', 'your@email.com', <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, undefined)}
-                {renderInput('Password', regPassword, setRegPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, undefined)}
-                {renderInput('Confirm Password', regConfirmPass, setRegConfirmPass, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, undefined)}
+                {renderInput('Password', regPassword, setRegPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, true)}
+                {renderInput('Confirm Password', regConfirmPass, setRegConfirmPass, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, true)}
                 <button
                   type="submit"
                   disabled={loading || !regName || !regEmail || !regPassword}
@@ -425,8 +425,8 @@ export default function BankLogin() {
                     autoFocus
                   />
                 </div>
-                {renderInput('New Password', newPassword, setNewPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, undefined)}
-                {renderInput('Confirm New Password', confirmNewPassword, setConfirmNewPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, undefined)}
+                {renderInput('New Password', newPassword, setNewPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, true)}
+                {renderInput('Confirm New Password', confirmNewPassword, setConfirmNewPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, true)}
                 <button
                   type="submit"
                   disabled={loading || enteredOtp.length !== 6 || !newPassword}

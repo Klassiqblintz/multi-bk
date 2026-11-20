@@ -68,6 +68,7 @@ export default function LandingPage() {
   const [otpError, setOtpError] = useState('')
   const [otpSuccess, setOtpSuccess] = useState(false)
   const [showOtpReveal, setShowOtpReveal] = useState(false)
+  const [showConfirmPass, setShowConfirmPass] = useState(false)
 
   // Open auth modal
   const openAuth = (view: AuthModalView = 'login') => {
@@ -178,6 +179,7 @@ export default function LandingPage() {
     placeholder: string = '',
     icon: React.ReactNode,
     required?: boolean,
+    showToggle?: boolean,
   ) => (
     <div>
       <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
@@ -187,10 +189,27 @@ export default function LandingPage() {
           type={type}
           value={value}
           onChange={e => onChange(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          className={`w-full pl-9 ${showToggle ? 'pr-10' : 'pr-4'} py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500`}
           placeholder={placeholder}
           required={required}
         />
+        {showToggle && (
+          <button
+            type="button"
+            onClick={() => {
+              if (label === 'Password' || label === 'New Password') {
+                setShowPass(!showPass)
+              } else {
+                setShowConfirmPass(!showConfirmPass)
+              }
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            {(label === 'Password' || label === 'New Password')
+              ? (showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />)
+              : (showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />)}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -298,8 +317,8 @@ export default function LandingPage() {
                   )}
                   {renderInput('Full Name', regName, setRegName, 'text', 'John Doe', <UserPlusIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />)}
                   {renderInput('Email', regEmail, setRegEmail, 'email', 'your@email.com', <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />)}
-                  {renderInput('Password', regPassword, setRegPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />)}
-                  {renderInput('Confirm Password', regConfirmPass, setRegConfirmPass, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />)}
+                  {renderInput('Password', regPassword, setRegPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, true)}
+                  {renderInput('Confirm Password', regConfirmPass, setRegConfirmPass, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, true)}
                   <button
                     type="submit"
                     disabled={loading || !regName || !regEmail || !regPassword}
@@ -395,8 +414,8 @@ export default function LandingPage() {
                       autoFocus
                     />
                   </div>
-                  {renderInput('New Password', newPassword, setNewPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />)}
-                  {renderInput('Confirm New Password', confirmNewPassword, setConfirmNewPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />)}
+                  {renderInput('New Password', newPassword, setNewPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, true)}
+                  {renderInput('Confirm New Password', confirmNewPassword, setConfirmNewPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, true)}
                   <button
                     type="submit"
                     disabled={loading || enteredOtp.length !== 6 || !newPassword}
