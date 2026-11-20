@@ -45,6 +45,18 @@ import { getTemplate } from '../lib/bankTemplates'
 import BankDashboardLayout from '../components/BankDashboardLayout'
 import { useAuth } from '../contexts/AuthContext'
 import { generateOtp, verifyOtp } from '../lib/local-auth'
+import {
+  getAccount as supabaseGetAccount,
+  updateAccountBalance as supabaseUpdateBalance,
+  getTransactions as supabaseGetTransactions,
+  createTransaction as supabaseCreateTransaction,
+  getSavingsGoals as supabaseGetSavingsGoals,
+  createSavingsGoal as supabaseCreateSavingsGoal,
+  deleteAccount as supabaseDeleteAccount,
+  deleteTransaction as supabaseDeleteTransaction,
+  deleteSavingsGoal as supabaseDeleteSavingsGoal,
+  getAccounts as supabaseGetAccounts,
+} from '../lib/supabase-api'
 
 interface AccountData {
   id: string
@@ -75,18 +87,6 @@ interface AccountData {
   showQuickActions?: boolean
   showSavingsGoals?: boolean
   accountTypes?: string[]
-}
-
-function getAccounts(): AccountData[] {
-  try {
-    return JSON.parse(localStorage.getItem('multiBank_accounts') || '[]')
-  } catch {
-    return []
-  }
-}
-
-function saveAccounts(accounts: AccountData[]) {
-  localStorage.setItem('multiBank_accounts', JSON.stringify(accounts))
 }
 
 function generateFakeTransactions(balance: number, symbol: string): any[] {
@@ -147,27 +147,50 @@ export default function BankDashboard() {
     return (validTabs.includes(hash as any) ? hash : 'home') as typeof activeTab
   }, [location.hash])
 
-  const loadAccount = useCallback(() => {
-    if (!accountId) return
-    const allAccounts = getAccounts()
-    const found = allAccounts.find(acc => acc.id === accountId)
-    if (found) {
-      const template = getTemplate(found.templateId)
-      setAccount({
-        ...found,
-        layoutType: template?.layoutType || 'modern',
-        headerStyle: template?.headerStyle || 'colored',
-        balanceStyle: template?.balanceStyle || 'prominent',
-        txnStyle: template?.txnStyle || 'list',
-        cardLayout: template?.cardLayout || 'single',
-        accentColor: template?.accentColor || template?.secondaryColor,
-        borderRadius: template?.borderRadius || 'md',
-        showGreeting: template?.showGreeting ?? true,
-        showQuickActions: template?.showQuickActions ?? true,
-        showSavingsGoals: template?.showSavingsGoals ?? true,
-        accountTypes: template?.accountTypes || [],
-      })
-    } else {
+  const loadAccount = useCallback(async () => {
+    if (!accountId) {
+      setLoading(false)
+      return
+    }
+    try {
+      const supAcc = await supabaseGetAccount(accountId)
+      if (supAcc) {
+        const template = getTemplate(supAcc.template_id)
+        setAccount({
+          id: supAcc.id,
+          templateId: supAcc.template_id,
+          templateName: supAcc.template_name,
+          accountHolder: supAcc.account_holder,
+          balance: supAcc.balance,
+          currency: supAcc.currency,
+          symbol: supAcc.symbol,
+          primaryColor: supAcc.primary_color,
+          secondaryColor: supAcc.secondary_color,
+          logoUrl: supAcc.logo_url ?? '',
+          country: supAcc.country,
+          countryCode: supAcc.country_code,
+          layout: template?.layout || 'modern',
+          features: template?.features || [],
+          tagline: template?.tagline || 'Secure Online Banking',
+          createdAt: supAcc.created_at || '',
+          status: supAcc.status || 'active',
+          layoutType: template?.layoutType || 'modern',
+          headerStyle: template?.headerStyle || 'colored',
+          balanceStyle: template?.balanceStyle || 'prominent',
+          txnStyle: template?.txnStyle || 'list',
+          cardLayout: template?.cardLayout || 'single',
+          accentColor: template?.accentColor || template?.secondaryColor,
+          borderRadius: template?.borderRadius || 'md',
+          showGreeting: template?.showGreeting ?? true,
+          showQuickActions: template?.showQuickActions ?? true,
+          showSavingsGoals: template?.showSavingsGoals ?? true,
+          accountTypes: template?.accountTypes || [],
+        })
+      } else {
+        setAccount(null)
+      }
+    } catch (e) {
+      console.error('Failed to load account:', e)
       setAccount(null)
     }
     setLoading(false)
@@ -177,43 +200,35 @@ export default function BankDashboard() {
     loadAccount()
   }, [loadAccount])
 
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
     if (!transferForm.amount || !transferForm.recipient || !account) return
     const amount = parseFloat(transferForm.amount)
     if (amount > account.balance) return
 
-    const updated = getAccounts().map(acc => {
-      if (acc.id === account.id) {
-        return { ...acc, balance: acc.balance - amount }
-      }
-      return acc
-    })
-    saveAccounts(updated)
-    setAccount(prev => prev ? { ...prev, balance: prev.balance - amount } : null)
-    setTransferSuccess(true)
-    setTransferForm({ recipient: '', amount: '', notes: '' })
-    setTimeout(() => setTransferSuccess(false), 3000)
+    const success = await supabaseUpdateBalance(account.id, account.balance - amount)
+    if (success) {
+      setAccount(prev => prev ? { ...prev, balance: prev.balance - amount } : null)
+      setTransferSuccess(true)
+      setTransferForm({ recipient: '', amount: '', notes: '' })
+      setTimeout(() => setTransferSuccess(false), 3000)
+    }
   }
 
-  const handleAddFunds = () => {
+  const handleAddFunds = async () => {
     if (!account || !addAmount) return
     const amount = parseFloat(addAmount)
     if (!amount || amount <= 0) return
     const newBalance = account.balance + amount
-    const updated = getAccounts().map(acc => {
-      if (acc.id === account.id) {
-        return { ...acc, balance: newBalance }
-      }
-      return acc
-    })
-    saveAccounts(updated)
-    setAccount(prev => prev ? { ...prev, balance: newBalance } : null)
-    setShowAddFunds(false)
-    setAddAmount('')
+    const success = await supabaseUpdateBalance(account.id, newBalance)
+    if (success) {
+      setAccount(prev => prev ? { ...prev, balance: newBalance } : null)
+      setShowAddFunds(false)
+      setAddAmount('')
+    }
   }
 
-  const handleLogout = () => {
-    signOut()
+  const handleLogout = async () => {
+    await signOut()
     navigate('/')
   }
 
@@ -285,17 +300,10 @@ export default function BankDashboard() {
       setOtpError('Invalid or expired code')
       return
     }
-    // Save new password to localStorage for this account's email
-    const allAccounts = getAccounts()
-    const updated = allAccounts.map(acc => {
-      if (acc.id === accountId) {
-        const accountUsers = JSON.parse(localStorage.getItem('multiBank_accountUsers') || '{}')
-        accountUsers[forgotEmail] = newPassword
-        localStorage.setItem('multiBank_accountUsers', JSON.stringify(accountUsers))
-      }
-      return acc
-    })
-    saveAccounts(updated)
+    // Store new password for this account in localStorage (simple approach)
+    const accountUsers: Record<string, string> = JSON.parse(localStorage.getItem('multiBank_accountUsers') || '{}')
+    accountUsers[forgotEmail] = newPassword
+    localStorage.setItem('multiBank_accountUsers', JSON.stringify(accountUsers))
     setPasswordResetDone(true)
   }
 
@@ -544,20 +552,46 @@ export default function BankDashboard() {
     )
   }
 
-  // Get transactions from localStorage or generate fake data
+  // Get transactions from Supabase or generate fake data as fallback
   const [transactions, setTransactions] = useState<any[]>([])
   const [savingsGoalsData, setSavingsGoalsData] = useState<any[]>([])
 
   useEffect(() => {
     if (!account) return
-    // Generate fake data for demo
-    const fakeTxns = generateFakeTransactions(account.balance, account.symbol)
-    setTransactions(fakeTxns)
-    setSavingsGoalsData([
-      { name: 'Emergency Fund', target: 50000, current: account.balance * 0.3, color: '#10B981' },
-      { name: 'Vacation Fund', target: 20000, current: 8500, color: '#3B82F6' },
-      { name: 'New Car', target: 100000, current: 35000, color: '#8B5CF6' },
-    ])
+    const load = async () => {
+      try {
+        const supTxns = await supabaseGetTransactions(account.id)
+        if (supTxns.length > 0) {
+          setTransactions(supTxns)
+          return
+        }
+      } catch { /* fall through to fake data */ }
+
+      // Generate fake data for demo / no Supabase
+      const fakeTxns = generateFakeTransactions(account.balance, account.symbol)
+      setTransactions(fakeTxns)
+    }
+    load()
+  }, [account])
+
+  useEffect(() => {
+    if (!account) return
+    const load = async () => {
+      try {
+        const supGoals = await supabaseGetSavingsGoals(account.id)
+        if (supGoals.length > 0) {
+          setSavingsGoalsData(supGoals)
+          return
+        }
+      } catch { /* fall through to fake data */ }
+
+      setSavingsGoalsData([
+        { name: 'Emergency Fund', target: 50000, current: account.balance * 0.3, color: '#10B981' },
+        { name: 'Vacation Fund', target: 20000, current: 8500, color: '#3B82F6' },
+        { name: 'New Car', target: 100000, current: 35000, color: '#8B5CF6' },
+      ])
+    }
+    load()
   }, [account])
 
   // Spending categories

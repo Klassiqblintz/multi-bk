@@ -91,13 +91,13 @@ export default function BankLogin() {
     }
   }
 
-  const handleForgotPassword = (e: React.FormEvent) => {
+  const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setOtpError('')
     setOtpSuccess(false)
     if (!forgotEmail) return
     try {
-      const otp = forgotPassword(forgotEmail)
+      const otp = await forgotPassword(forgotEmail)
       setGeneratedOtp(otp)
       setOtpSuccess(true)
     } catch (err: any) {

@@ -1,11 +1,14 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Plus, Minus, Eye, EyeOff, Check, AlertCircle } from 'lucide-react'
 import { BANK_TEMPLATES, getTemplate, type BankTemplate } from '../lib/bankTemplates'
+import { createAccount as supabaseCreateAccount } from '../lib/supabase-api'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function AccountCreate() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const { userId } = useAuth()
   const templateId = searchParams.get('template')
   const template = templateId ? getTemplate(templateId) : null
   const [name, setName] = useState(template?.name || '')
@@ -18,22 +21,18 @@ export default function AccountCreate() {
   })
   const [customName, setCustomName] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+  const [createdAccount, setCreatedAccount] = useState<{ id: string; templateName: string; balance: number } | null>(null)
   const [error, setError] = useState('')
 
-  if (!template) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-5xl mb-3">🏦</div>
-          <h2 className="text-xl font-bold text-gray-900 mb-1">No template selected</h2>
-          <p className="text-sm text-gray-500 mb-4">Choose a template first</p>
-          <Link to="/templates" className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Browse Templates
-          </Link>
-        </div>
-      </div>
-    )
+  // Redirect if no template or not logged in
+  useEffect(() => {
+    if (!template) {
+      navigate('/templates')
+    }
+  }, [template, navigate])
+
+  if (!template || !userId) {
+    return null
   }
 
   const formatBalance = (val: string) => {
@@ -53,80 +52,40 @@ export default function AccountCreate() {
     }
   }
 
-  const handleSubmit = () => {
+  const handleCreate = useCallback(async () => {
     if (!holderName || !balance) return
     setSubmitting(true)
     setError('')
 
-    // Save account to localStorage
-    const newAcc = {
-      id: 'acc_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
-      templateId: template.id,
-      templateName: customName || template.name,
-      accountHolder: customName || holderName || template.name,
-      balance: parseInt(balance),
-      currency: template.currency,
-      symbol: template.symbol,
-      primaryColor: customColors.primary,
-      secondaryColor: customColors.secondary,
-      logoUrl: '',
-      country: template.country,
-      countryCode: template.countryCode,
-      layout: template.layout,
-      features: template.features,
-      tagline: template.tagline,
-      createdAt: new Date().toISOString(),
-      status: 'active' as const,
+    try {
+      const accountName = customName || template.name
+      const newAcc = await supabaseCreateAccount(userId, {
+        id: template.id,
+        name: template.name,
+        currency: template.currency,
+        symbol: template.symbol,
+        primaryColor: customColors.primary,
+        secondaryColor: customColors.secondary,
+      }, customName || holderName || template.name)
+
+      if (newAcc) {
+        setCreatedAccount({
+          id: newAcc.id,
+          templateName: accountName,
+          balance: newAcc.balance,
+        })
+        setSubmitting(false)
+      } else {
+        setError('Failed to create account. Please try again.')
+        setSubmitting(false)
+      }
+    } catch (e: any) {
+      setError(e.message || 'Something went wrong')
+      setSubmitting(false)
     }
+  }, [userId, template, customName, holderName, balance, customColors])
 
-    // Get existing accounts and add new one
-    const existing = JSON.parse(localStorage.getItem('multiBank_accounts') || '[]')
-    const allAccounts = [...existing, newAcc]
-    localStorage.setItem('multiBank_accounts', JSON.stringify(allAccounts))
-
-    setSubmitted(true)
-    setSubmitting(false)
-  }
-
-  const [createdAccount, setCreatedAccount] = useState<{ id: string } | null>(null)
-
-  const handleCreate = () => {
-    if (!holderName || !balance) return
-    setSubmitting(true)
-    setError('')
-
-    // Save account to localStorage
-    const newAcc = {
-      id: 'acc_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
-      templateId: template.id,
-      templateName: customName || template.name,
-      accountHolder: customName || holderName || template.name,
-      balance: parseInt(balance),
-      currency: template.currency,
-      symbol: template.symbol,
-      primaryColor: customColors.primary,
-      secondaryColor: customColors.secondary,
-      logoUrl: '',
-      country: template.country,
-      countryCode: template.countryCode,
-      layout: template.layout,
-      features: template.features,
-      tagline: template.tagline,
-      createdAt: new Date().toISOString(),
-      status: 'active' as const,
-    }
-
-    // Get existing accounts and add new one
-    const existing = JSON.parse(localStorage.getItem('multiBank_accounts') || '[]')
-    const allAccounts = [...existing, newAcc]
-    localStorage.setItem('multiBank_accounts', JSON.stringify(allAccounts))
-
-    setCreatedAccount({ id: newAcc.id })
-    setSubmitted(true)
-    setSubmitting(false)
-  }
-
-  if (submitted && createdAccount) {
+  if (createdAccount) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto">
@@ -150,14 +109,14 @@ export default function AccountCreate() {
                 </span>
               </div>
               <div className="text-left">
-                <div className="font-bold text-gray-900">{customName || template.name}</div>
+                <div className="font-bold text-gray-900">{createdAccount.templateName}</div>
                 <div className="text-xs text-gray-400">{holderName}</div>
               </div>
             </div>
             <div className="text-center py-2">
               <div className="text-xs text-gray-400">Balance</div>
               <div className="text-2xl font-bold text-green-600">
-                {template.symbol}{parseInt(balance).toLocaleString()}
+                {template.symbol}{createdAccount.balance.toLocaleString()}
               </div>
             </div>
           </div>

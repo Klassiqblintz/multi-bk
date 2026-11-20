@@ -21,6 +21,7 @@ export interface BankAccount {
   symbol: string
   primary_color: string
   secondary_color: string
+  logo_url?: string
   country: string
   country_code: string
   status: string

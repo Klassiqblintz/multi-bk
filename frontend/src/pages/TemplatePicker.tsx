@@ -2,7 +2,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, LayoutGrid, Search, ChevronRight } from 'lucide-react'
 import { BANK_TEMPLATES, getCountries } from '../lib/bankTemplates'
 import { useState } from 'react'
-import { useAuth } from '../contexts/AuthContext'
 
 const COUNTRIES = getCountries()
 const COUNTRY_ICONS: Record<string, string> = {
@@ -12,7 +11,6 @@ const COUNTRY_ICONS: Record<string, string> = {
 }
 
 export default function TemplatePicker() {
-  const { user } = useAuth()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null)

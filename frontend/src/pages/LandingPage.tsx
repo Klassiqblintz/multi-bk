@@ -38,7 +38,7 @@ const FEATURES = [
 type AuthModalView = 'login' | 'register' | 'forgot' | 'resetPassword' | 'resetComplete'
 
 export default function LandingPage() {
-  const { user, email, fullName, signIn, signUp, forgotPassword, verifyPasswordReset } = useAuth()
+  const { userId: user, email, fullName, signIn, signUp, forgotPassword, verifyPasswordReset } = useAuth()
   const navigate = useNavigate()
 
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -124,13 +124,13 @@ export default function LandingPage() {
   }
 
   // Forgot password - generate OTP
-  const handleForgotPassword = (e: React.FormEvent) => {
+  const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setOtpError('')
     setOtpSuccess(false)
     if (!forgotEmail) return
     try {
-      const otp = forgotPassword(forgotEmail)
+      const otp = await forgotPassword(forgotEmail)
       setGeneratedOtp(otp)
       setOtpSuccess(true)
       setAuthView('resetPassword')

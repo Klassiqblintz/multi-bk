@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import {
   Users,
   Building2,
@@ -18,6 +18,14 @@ import {
   Lock,
   LogOut,
 } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import {
+  getAccounts as supabaseGetAccounts,
+  updateAccountBalance as supabaseUpdateBalance,
+  deleteAccount as supabaseDeleteAccount,
+  createAccount as supabaseCreateAccount,
+} from '../lib/supabase-api'
+import { BANK_TEMPLATES } from '../lib/bankTemplates'
 
 const ADMIN_PASSWORD = '0425'
 const ADMIN_SESSION_KEY = 'multiBank_adminSession'
@@ -26,40 +34,6 @@ const COUNTRY_ICONS: Record<string, string> = {
   'DE': '🇩🇪', 'AU': '🇦🇺', 'US': '🇺🇸',
   'FR': '🇫🇷', 'IT': '🇮🇹', 'GB': '🇬🇧', 'CA': '🇨🇦',
   'JP': '🇯🇵',
-}
-
-interface AccountData {
-  id: string
-  templateId: string
-  templateName: string
-  accountHolder: string
-  balance: number
-  currency: string
-  symbol: string
-  primaryColor: string
-  secondaryColor: string
-  logoUrl: string
-  country: string
-  countryCode: string
-  layout: string
-  features: string[]
-  tagline: string
-  createdAt: string
-  status: string
-}
-
-function getAccounts(): AccountData[] {
-  try {
-    const stored = localStorage.getItem('multiBank_accounts')
-    if (stored) return JSON.parse(stored)
-    return []
-  } catch {
-    return []
-  }
-}
-
-function saveAccounts(accounts: AccountData[]) {
-  localStorage.setItem('multiBank_accounts', JSON.stringify(accounts))
 }
 
 function isAdminLoggedIn(): boolean {
@@ -73,23 +47,65 @@ function setAdminLoggedIn(loggedIn: boolean) {
 
 export default function AdminPanel() {
   const navigate = useNavigate()
+  const { userId, email, fullName, signOut } = useAuth()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [loading, setLoading] = useState(true)
-  const [accounts, setAccounts] = useState<AccountData[]>([])
+  const [accounts, setAccounts] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null)
   const [addAmount, setAddAmount] = useState('')
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
+  // Check admin session on mount
   useEffect(() => {
     if (isAdminLoggedIn()) {
       setIsAuthenticated(true)
     }
     setLoading(false)
   }, [])
+
+  // Load accounts from Supabase when authenticated and userId is available
+  useEffect(() => {
+    const load = async () => {
+      if (!isAuthenticated || !userId) {
+        if (!userId) {
+          // Redirect to landing if not logged in via Supabase
+          navigate('/')
+        }
+        return
+      }
+      try {
+        const data = await supabaseGetAccounts(userId)
+        // Map snake_case to the shape the template expects
+        const mapped = data.map((a: any) => ({
+          id: a.id,
+          templateId: a.template_id,
+          templateName: a.template_name,
+          accountHolder: a.account_holder,
+          balance: a.balance,
+          currency: a.currency,
+          symbol: a.symbol,
+          primaryColor: a.primary_color,
+          secondaryColor: a.secondary_color,
+          logoUrl: a.logo_url || '',
+          country: a.country,
+          countryCode: a.country_code,
+          layout: 'modern',
+          features: [],
+          tagline: 'Secure Online Banking',
+          createdAt: a.created_at || '',
+          status: a.status || 'active',
+        }))
+        setAccounts(mapped)
+      } catch (e) {
+        console.error('Failed to load accounts:', e)
+      }
+    }
+    load()
+  }, [isAuthenticated, userId, navigate])
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -103,18 +119,6 @@ export default function AdminPanel() {
     }
   }
 
-  const handleLogout = () => {
-    setAdminLoggedIn(false)
-    setIsAuthenticated(false)
-    setAccounts([])
-    navigate('/')
-  }
-
-  const loadAccounts = useCallback(() => {
-    const data = getAccounts()
-    setAccounts(data)
-  }, [])
-
   const filtered = accounts.filter(acc =>
     !search ||
     (acc.templateName || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -124,60 +128,79 @@ export default function AdminPanel() {
   const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0)
   const totalAccounts = accounts.length
 
-  const handleAddFunds = () => {
+  const handleAddFunds = async () => {
     const amount = parseFloat(addAmount)
     if (!amount || amount <= 0) return
     if (!selectedAccount) return
 
-    const updated = accounts.map(acc => {
-      if (acc.id === selectedAccount) {
-        return { ...acc, balance: acc.balance + amount }
+    const acc = accounts.find((a: any) => a.id === selectedAccount)
+    if (!acc) return
+    const success = await supabaseUpdateBalance(selectedAccount, acc.balance + amount)
+    if (success) {
+      setToast({ message: `Successfully added ${addAmount} to account`, type: 'success' })
+      if (userId) {
+        const data = await supabaseGetAccounts(userId)
+        setAccounts(data.map((a: any) => ({
+          id: a.id, templateId: a.template_id, templateName: a.template_name,
+          accountHolder: a.account_holder, balance: a.balance,
+          currency: a.currency, symbol: a.symbol,
+          primaryColor: a.primary_color, secondaryColor: a.secondary_color,
+          logoUrl: a.logo_url || '', country: a.country, countryCode: a.country_code,
+          layout: 'modern', features: [], tagline: 'Secure Online Banking',
+          createdAt: a.created_at || '', status: a.status || 'active',
+        })))
       }
-      return acc
-    })
-    saveAccounts(updated)
-    setAccounts(updated)
-    setToast({ message: `Successfully added ${addAmount} to account`, type: 'success' })
-    setTimeout(() => {
-      setToast(null)
-      setShowAddModal(false)
-      setAddAmount('')
-    }, 2000)
+      setTimeout(() => {
+        setToast(null)
+        setShowAddModal(false)
+        setAddAmount('')
+      }, 2000)
+    }
   }
 
-  const handleDelete = (accountId: string) => {
+  const handleDelete = async (accountId: string) => {
     if (!window.confirm('Delete this account?')) return
-    const updated = accounts.filter(acc => acc.id !== accountId)
-    saveAccounts(updated)
-    setAccounts(updated)
+    const success = await supabaseDeleteAccount(accountId)
+    if (success && userId) {
+      const data = await supabaseGetAccounts(userId)
+      setAccounts(data.map((a: any) => ({
+        id: a.id, templateId: a.template_id, templateName: a.template_name,
+        accountHolder: a.account_holder, balance: a.balance,
+        currency: a.currency, symbol: a.symbol,
+        primaryColor: a.primary_color, secondaryColor: a.secondary_color,
+        logoUrl: a.logo_url || '', country: a.country, countryCode: a.country_code,
+        layout: 'modern', features: [], tagline: 'Secure Online Banking',
+        createdAt: a.created_at || '', status: a.status || 'active',
+      })))
+    }
   }
 
-  const handleCreateAccount = () => {
-    const newAcc: AccountData = {
-      id: 'acc_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
-      templateId: 'chase',
-      templateName: 'Chase',
-      accountHolder: 'John Doe',
-      balance: 50000,
+  const handleCreateAccount = async () => {
+    if (!userId) return
+    const chaseTemplate = BANK_TEMPLATES.find(t => t.id === 'chase') || BANK_TEMPLATES[0]
+    const newAcc = await supabaseCreateAccount(userId, {
+      id: chaseTemplate?.id || 'chase',
+      name: chaseTemplate?.name || 'Chase',
       currency: 'USD',
       symbol: '$',
       primaryColor: '#2563EB',
       secondaryColor: '#1D4ED8',
-      logoUrl: '',
-      country: 'USA',
-      countryCode: 'US',
-      layout: 'modern',
-      features: ['dashboard', 'transactions', 'cards', 'statements', 'settings'],
-      tagline: 'Banking made simple.',
-      createdAt: new Date().toISOString(),
-      status: 'active',
+    }, 'John Doe')
+    if (newAcc) {
+      setShowAddModal(false)
+      setToast({ message: 'Account created successfully', type: 'success' })
+      const data = await supabaseGetAccounts(userId)
+      setAccounts(data.map((a: any) => ({
+        id: a.id, templateId: a.template_id, templateName: a.template_name,
+        accountHolder: a.account_holder, balance: a.balance,
+        currency: a.currency, symbol: a.symbol,
+        primaryColor: a.primary_color, secondaryColor: a.secondary_color,
+        logoUrl: a.logo_url || '', country: a.country, countryCode: a.country_code,
+        layout: 'modern', features: [], tagline: 'Secure Online Banking',
+        createdAt: a.created_at || '', status: a.status || 'active',
+      })))
+      setTimeout(() => setToast(null), 2000)
     }
-    const updated = [...accounts, newAcc]
-    saveAccounts(updated)
-    setAccounts(updated)
-    setShowAddModal(false)
-    setToast({ message: 'Account created successfully', type: 'success' })
-    setTimeout(() => setToast(null), 2000)
   }
 
   if (loading) {
@@ -288,7 +311,7 @@ export default function AdminPanel() {
               <Plus className="w-3.5 h-3.5" /> Create Account
             </button>
             <button
-              onClick={handleLogout}
+              onClick={async () => { setAdminLoggedIn(false); await signOut(); navigate('/') }}
               className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200"
             >
               <LogOut className="w-3.5 h-3.5" /> Logout
