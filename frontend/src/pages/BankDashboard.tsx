@@ -52,6 +52,7 @@ import {
   createTransaction as supabaseCreateTransaction,
   getSavingsGoals as supabaseGetSavingsGoals,
   createSavingsGoal as supabaseCreateSavingsGoal,
+  updateSavingsGoal as supabaseUpdateSavingsGoal,
   deleteAccount as supabaseDeleteAccount,
   deleteTransaction as supabaseDeleteTransaction,
   deleteSavingsGoal as supabaseDeleteSavingsGoal,
@@ -302,7 +303,7 @@ export default function BankDashboard() {
     load()
   }, [userId, account])
 
-  // EXPORT TRANSACTIONS AS CSV
+  // Export transactions as CSV
   const exportCsv = () => {
     if (!filteredTxns || filteredTxns.length === 0) return
     const headers = ['Date', 'Type', 'Amount', 'Description', 'Counterparty', 'Status']
@@ -322,6 +323,54 @@ export default function BankDashboard() {
     a.download = `transactions-${account?.templateName || 'account'}-${new Date().toISOString().split('T')[0]}.csv`
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  // SAVING GOALS
+  const addSavingsGoal = async () => {
+    if (!account) return
+    const name = prompt('Goal name (e.g., "Vacation Fund"):')
+    if (!name) return
+    const target = prompt('Target amount (e.g., "10000"):')
+    if (!target) return
+    const parsed = parseFloat(target)
+    if (isNaN(parsed) || parsed <= 0) return
+
+    const colors = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4']
+    const newGoal = await supabaseCreateSavingsGoal(account.id, name, parsed)
+    if (newGoal) {
+      // Reload goals
+      const goals = await supabaseGetSavingsGoals(account.id)
+      setSavingsGoalsData(goals.length > 0 ? goals : [
+        { id: 'g1', name: name, target: parsed, current: 0, color: colors[Math.floor(Math.random() * colors.length)], account_id: account.id },
+      ])
+    }
+  }
+
+  const contributeToGoal = async (goalId: string, amount: number) => {
+    if (!account) return
+    const goal = savingsGoalsData.find((g: any) => g.id === goalId)
+    if (!goal) return
+    if (amount > account.balance) {
+      alert(`Insufficient funds. Available: ${account.symbol}${account.balance.toLocaleString()}`)
+      return
+    }
+    const newCurrent = goal.current + amount
+    const success = await supabaseUpdateSavingsGoal(goalId, newCurrent)
+    if (success) {
+      // Reload goals
+      const goals = await supabaseGetSavingsGoals(account.id)
+      setSavingsGoalsData(goals.length > 0 ? goals : savingsGoalsData.map((g: any) => g.id === goalId ? { ...g, current: newCurrent } : g))
+    }
+  }
+
+  const deleteSavingsGoal = async (goalId: string) => {
+    if (!window.confirm('Delete this savings goal?')) return
+    await supabaseDeleteSavingsGoal(goalId)
+    // Reload goals
+    if (account) {
+      const goals = await supabaseGetSavingsGoals(account.id)
+      setSavingsGoalsData(goals.length > 0 ? goals : savingsGoalsData.filter((g: any) => g.id !== goalId))
+    }
   }
 
   if (loading) {
@@ -758,6 +807,9 @@ export default function BankDashboard() {
       savingsGoals={savingsGoals}
       showSavingsGoals={showSavingsGoals}
       setShowSavingsGoals={setShowSavingsGoals}
+      addSavingsGoal={addSavingsGoal}
+      contributeToGoal={contributeToGoal}
+      deleteSavingsGoal={deleteSavingsGoal}
       accountType={accountType}
       setAccountType={setAccountType}
       onLogout={handleLogout}
