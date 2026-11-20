@@ -492,8 +492,8 @@ export default function LandingPage() {
           <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200 rounded-full blur-3xl" />
           <div className="absolute bottom-10 right-10 w-96 h-96 bg-indigo-200 rounded-full blur-3xl" />
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-32">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-full text-blue-600 text-sm font-medium mb-6">
                 <Zap className="w-3.5 h-3.5" />
@@ -592,7 +592,7 @@ export default function LandingPage() {
             </h2>
             <p className="text-lg text-gray-500">A complete fake banking experience</p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {FEATURES.map(feature => (
               <div key={feature.title} className="group p-6 rounded-2xl bg-gray-50 hover:bg-blue-50 transition-all duration-300">
                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 transition-all duration-300">
@@ -615,7 +615,7 @@ export default function LandingPage() {
             </h2>
             <p className="text-lg text-gray-500">Three simple steps to your fake bank account</p>
           </div>
-          <div className="grid sm:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
               { step: '01', title: 'Choose a Template', desc: 'Browse our 30+ authentic bank templates from around the world' },
               { step: '02', title: 'Customize Your Account', desc: 'Set your name, balance, currency and make it yours' },

@@ -472,8 +472,8 @@ export default function BankDashboard() {
             </div>
           </div>
         </div>
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="w-full max-w-md">
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+          <div className="w-full max-w-sm sm:max-w-md">
             {!showOtp ? (
               <div className="bg-white rounded-2xl shadow-2xl p-8">
                 <div className="text-center mb-6">

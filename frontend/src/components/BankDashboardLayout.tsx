@@ -412,28 +412,28 @@ export default function BankDashboardLayout({
 
         {/* ADD FUNDS */}
         {showAddFunds && (
-          <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-              <Plus className="w-4 h-4 text-green-600" />
+          <div className="mb-3 sm:mb-4 bg-green-50 border border-green-200 rounded-xl p-2.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-1.5 sm:gap-3">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600" />
             </div>
-            <div className="flex-1 flex items-center gap-2">
-              <span className="text-sm font-medium text-green-800">Add Funds:</span>
-              <span className="text-sm text-green-600">{account.symbol}</span>
+            <div className="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-1.5 sm:gap-2">
+              <span className="text-xs sm:text-sm font-medium text-green-800 flex-shrink-0">Add Funds:</span>
+              <span className="text-xs sm:text-sm text-green-600 flex-shrink-0">{account.symbol}</span>
               <input
                 type="number"
                 value={addAmount}
                 onChange={e => setAddAmount(e.target.value)}
                 placeholder="Amount"
-                className="w-28 px-2 py-1.5 bg-white border border-green-200 rounded text-sm text-green-800 focus:outline-none focus:border-green-400"
+                className="w-full sm:w-28 px-2 py-1.5 bg-white border border-green-200 rounded text-xs sm:text-sm text-green-800 focus:outline-none focus:border-green-400"
               />
-              <button onClick={handleAddFunds} className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700">
+              <button onClick={handleAddFunds} className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition flex-shrink-0">
                 Add Funds
               </button>
-              <button onClick={() => setShowAddFunds(false)} className="text-green-400 hover:text-green-600">
+              <button onClick={() => setShowAddFunds(false)} className="text-green-400 hover:text-green-600 flex-shrink-0">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="text-xs text-green-500">
+            <div className="text-xs text-green-500 sm:text-xs sm:text-right flex-shrink-0 w-full sm:w-auto">
               Current: {account.symbol}{account.balance.toLocaleString()}
             </div>
           </div>
@@ -450,9 +450,9 @@ export default function BankDashboardLayout({
               }}
             >
               <div
-                className={`p-6 sm:p-8 text-white relative overflow-hidden ${
-                  balanceStyle === 'prominent' ? 'min-h-[200px]' :
-                  balanceStyle === 'compact' ? 'min-h-[100px]' : 'min-h-[160px]'
+                className={`p-4 sm:p-6 lg:p-8 text-white relative overflow-hidden ${
+                  balanceStyle === 'prominent' ? 'min-h-[180px] sm:min-h-[200px]' :
+                  balanceStyle === 'compact' ? 'min-h-[90px] sm:min-h-[100px]' : 'min-h-[140px] sm:min-h-[160px]'
                 }`}
                 style={{
                   background: headerStyle === 'minimal'
@@ -487,9 +487,9 @@ export default function BankDashboardLayout({
 
                   {/* Balance - varies by balanceStyle */}
                   {balanceStyle === 'prominent' && (
-                    <div className="mb-6">
-                      <div className="text-sm opacity-60 mb-2">Available Balance</div>
-                      <div className="text-4xl sm:text-5xl font-bold tracking-tight">
+                    <div className="mb-4 sm:mb-6">
+                      <div className="text-xs sm:text-sm opacity-60 mb-1.5 sm:mb-2">Available Balance</div>
+                      <div className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
                         {account.symbol}{showBalance ? account.balance.toLocaleString() : '••••••'}
                         {showBalance && '.00'}
                       </div>
@@ -537,21 +537,21 @@ export default function BankDashboardLayout({
 
                   {/* Quick actions - varies per bank config */}
                   {showQuickActions && (
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      <button onClick={() => setActiveTab('transfer')} className="flex items-center gap-1.5 px-4 py-2 bg-white/15 rounded-lg text-sm font-medium hover:bg-white/25 transition">
-                        <ArrowRightLeft className="w-4 h-4" />
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3 sm:mt-4">
+                      <button onClick={() => setActiveTab('transfer')} className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/15 rounded-lg text-xs sm:text-sm font-medium hover:bg-white/25 transition">
+                        <ArrowRightLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span className="hidden sm:inline">Transfer</span>
                       </button>
-                      <button onClick={() => setActiveTab('cards')} className="flex items-center gap-1.5 px-4 py-2 bg-white/15 rounded-lg text-sm font-medium hover:bg-white/25 transition">
-                        <CreditCard className="w-4 h-4" />
+                      <button onClick={() => setActiveTab('cards')} className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/15 rounded-lg text-xs sm:text-sm font-medium hover:bg-white/25 transition">
+                        <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span className="hidden sm:inline">Cards</span>
                       </button>
-                      <button onClick={() => setActiveTab('statements')} className="flex items-center gap-1.5 px-4 py-2 bg-white/15 rounded-lg text-sm font-medium hover:bg-white/25 transition">
-                        <FileText className="w-4 h-4" />
+                      <button onClick={() => setActiveTab('statements')} className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/15 rounded-lg text-xs sm:text-sm font-medium hover:bg-white/25 transition">
+                        <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span className="hidden sm:inline">Statements</span>
                       </button>
-                      <button onClick={() => setActiveTab('settings')} className="flex items-center gap-1.5 px-4 py-2 bg-white/15 rounded-lg text-sm font-medium hover:bg-white/25 transition">
-                        <Settings className="w-4 h-4" />
+                      <button onClick={() => setActiveTab('settings')} className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/15 rounded-lg text-xs sm:text-sm font-medium hover:bg-white/25 transition">
+                        <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span className="hidden sm:inline">Settings</span>
                       </button>
                     </div>
@@ -561,43 +561,43 @@ export default function BankDashboardLayout({
             </div>
 
             {/* QUICK STATS */}
-            <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 ${
-              isMinimal ? 'gap-2' : 'gap-3'
+            <div className={`grid grid-cols-4 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 ${
+              isMinimal ? 'gap-1.5' : 'gap-2 sm:gap-3'
             }`}>
-              <div className={`${isMinimal ? 'p-2' : 'p-3'} bg-white rounded-xl border border-gray-100`}>
+              <div className={`${isMinimal ? 'p-1.5 sm:p-2' : 'p-2 sm:p-3'} bg-white rounded-xl border border-gray-100`}>
                 <div className={`flex items-center gap-1.5 mb-1.5`}>
-                  <TrendingUp className="w-3.5 h-3.5 text-green-500" />
-                  <div className="text-xs text-gray-500">Income</div>
+                  <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-green-500" />
+                  <div className="text-[10px] sm:text-xs text-gray-500">Income</div>
                 </div>
-                <div className="text-sm font-bold text-green-600">+{account.symbol}24,500</div>
+                <div className="text-xs sm:text-sm font-bold text-green-600">+{account.symbol}24,500</div>
               </div>
-              <div className={`${isMinimal ? 'p-2' : 'p-3'} bg-white rounded-xl border border-gray-100`}>
+              <div className={`${isMinimal ? 'p-1.5 sm:p-2' : 'p-2 sm:p-3'} bg-white rounded-xl border border-gray-100`}>
                 <div className={`flex items-center gap-1.5 mb-1.5`}>
-                  <TrendingDown className="w-3.5 h-3.5 text-red-400" />
-                  <div className="text-xs text-gray-500">Expenses</div>
+                  <TrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-400" />
+                  <div className="text-[10px] sm:text-xs text-gray-500">Expenses</div>
                 </div>
-                <div className="text-sm font-bold text-red-500">-{account.symbol}3,280</div>
+                <div className="text-xs sm:text-sm font-bold text-red-500">-{account.symbol}3,280</div>
               </div>
-              <div className={`${isMinimal ? 'p-2' : 'p-3'} bg-white rounded-xl border border-gray-100`}>
+              <div className={`${isMinimal ? 'p-1.5 sm:p-2' : 'p-2 sm:p-3'} bg-white rounded-xl border border-gray-100`}>
                 <div className={`flex items-center gap-1.5 mb-1.5`}>
-                  <PiggyBank className="w-3.5 h-3.5 text-blue-500" />
-                  <div className="text-xs text-gray-500">Savings</div>
+                  <PiggyBank className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-500" />
+                  <div className="text-[10px] sm:text-xs text-gray-500">Savings</div>
                 </div>
-                <div className="text-sm font-bold text-blue-600">{account.symbol}18,219</div>
+                <div className="text-xs sm:text-sm font-bold text-blue-600">{account.symbol}18,219</div>
               </div>
-              <div className={`${isMinimal ? 'p-2' : 'p-3'} bg-white rounded-xl border border-gray-100`}>
+              <div className={`${isMinimal ? 'p-1.5 sm:p-2' : 'p-2 sm:p-3'} bg-white rounded-xl border border-gray-100`}>
                 <div className={`flex items-center gap-1.5 mb-1.5`}>
-                  <CreditCard className="w-3.5 h-3.5 text-purple-500" />
-                  <div className="text-xs text-gray-500">Cards</div>
+                  <CreditCard className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-500" />
+                  <div className="text-[10px] sm:text-xs text-gray-500">Cards</div>
                 </div>
-                <div className="text-sm font-bold text-gray-700">2 Active</div>
+                <div className="text-xs sm:text-sm font-bold text-gray-700">2 Active</div>
               </div>
             </div>
 
             {/* ACCOUNT INFO + SAVINGS GOALS */}
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-0">
               {/* Account Details */}
-              <div className="bg-white rounded-xl border border-gray-100 p-5">
+              <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 lg:p-5">
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Account Details</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -630,7 +630,7 @@ export default function BankDashboardLayout({
               </div>
 
               {/* Savings Goals (if enabled for this bank) */}
-              <div className="bg-white rounded-xl border border-gray-100 p-5">
+              <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 lg:p-5 mt-4 lg:mt-0">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-1.5">
                     <PiggyBank className="w-4 h-4 text-blue-500" />
@@ -744,8 +744,8 @@ export default function BankDashboardLayout({
             </div>
 
             {/* TRANSACTIONS - layout varies per txnStyle config */}
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
+            <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 lg:p-5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                 <h3 className="text-sm font-semibold text-gray-900">Transaction History</h3>
                 <button
                   onClick={exportCsv}
@@ -756,23 +756,23 @@ export default function BankDashboardLayout({
               </div>
 
               {/* FILTERS */}
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4">
                 <div className="relative flex-1 sm:flex-none">
                   <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search transactions..."
+                    placeholder="Search..."
                     value={txnSearch}
                     onChange={e => setTxnSearch(e.target.value)}
-                    className="w-full sm:w-48 pl-7 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500"
+                    className="w-full sm:w-48 pl-7 pr-3 py-1.5 sm:py-1.5 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500"
                   />
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1.5 sm:gap-1">
                   {(['all', 'credit', 'debit'] as const).map(filter => (
                     <button
                       key={filter}
                       onClick={() => setTxnFilter(filter)}
-                      className={`px-2.5 py-1.5 rounded text-xs font-medium transition ${
+                      className={`px-2.5 py-1.5 sm:px-2.5 sm:py-1.5 rounded text-xs font-medium transition whitespace-nowrap ${
                         txnFilter === filter
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
@@ -802,13 +802,13 @@ export default function BankDashboardLayout({
 
         {/* TRANSFER TAB */}
         {activeTab === 'transfer' && (
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-xl border border-gray-100 p-6">
-              <div className="flex items-center justify-between mb-1">
+          <div className="w-full max-w-2xl mx-auto px-2 sm:px-0">
+            <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6 lg:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 sm:gap-0 mb-1">
                 <h3 className="text-lg font-bold text-gray-900">Transfer Money</h3>
                 <button
                   onClick={() => setTransferToSelf(!transferToSelf)}
-                  className={`text-xs font-medium px-2.5 py-1.5 rounded-lg transition ${
+                  className={`text-xs font-medium px-2.5 py-1.5 rounded-lg transition whitespace-nowrap ${
                     transferToSelf
                       ? 'bg-blue-100 text-blue-600'
                       : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
@@ -817,7 +817,7 @@ export default function BankDashboardLayout({
                   {transferToSelf ? 'Send to anyone' : 'Transfer to my account'}
                 </button>
               </div>
-              <p className="text-sm text-gray-500 mb-5">
+              <p className="text-sm text-gray-500 mb-4 sm:mb-5">
                 {transferToSelf ? 'Send money between your own accounts' : 'Send money to anyone, anywhere'}
               </p>
               <div className="space-y-4">

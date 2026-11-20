@@ -136,19 +136,19 @@ export default function MyAccounts() {
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
       <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">My Accounts</h1>
-              <p className="text-sm text-gray-500 mt-1">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">My Accounts</h1>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
                 {accounts.length} account{accounts.length !== 1 ? 's' : ''} · {fullName || email || 'User'}
               </p>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition text-sm"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition text-xs sm:text-sm"
             >
-              <Plus className="w-4 h-4" /> New Account
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">New Account</span><span className="sm:hidden">New</span>
             </button>
           </div>
         </div>
@@ -156,30 +156,30 @@ export default function MyAccounts() {
 
       {/* STATS */}
       {accounts.length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div className="bg-white rounded-xl border border-gray-100 p-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4">
+          <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-3 gap-2 sm:gap-3">
+            <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-1.5">
-                <Building2 className="w-4 h-4 text-blue-500" />
-                <div className="text-xs text-gray-500">Accounts</div>
+                <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500" />
+                <div className="text-[10px] sm:text-xs text-gray-500">Accounts</div>
               </div>
-              <div className="text-xl font-bold text-blue-600">{accounts.length}</div>
+              <div className="text-lg sm:text-xl font-bold text-blue-600">{accounts.length}</div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-100 p-4">
+            <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-1.5">
-                <DollarSign className="w-4 h-4 text-green-500" />
-                <div className="text-xs text-gray-500">Total Balance</div>
+                <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500" />
+                <div className="text-[10px] sm:text-xs text-gray-500">Total Balance</div>
               </div>
-              <div className="text-xl font-bold text-green-600">
+              <div className="text-lg sm:text-xl font-bold text-green-600">
                 {accounts.reduce((sum, a) => sum + a.balance, 0).toLocaleString()}
               </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-100 p-4">
+            <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-1.5">
-                <Globe className="w-4 h-4 text-purple-500" />
-                <div className="text-xs text-gray-500">Countries</div>
+                <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500" />
+                <div className="text-[10px] sm:text-xs text-gray-500">Countries</div>
               </div>
-              <div className="text-xl font-bold text-purple-600">
+              <div className="text-lg sm:text-xl font-bold text-purple-600">
                 {new Set(accounts.map(a => a.country)).size}
               </div>
             </div>
@@ -251,20 +251,20 @@ export default function MyAccounts() {
                 <Link
                   key={acc.id}
                   to={`/dashboard/${acc.id}`}
-                  className="block bg-white rounded-xl border border-gray-100 p-4 hover:border-gray-200 hover:shadow-sm transition-all group"
+                  className="block bg-white rounded-xl border border-gray-100 p-3 sm:p-4 hover:border-gray-200 hover:shadow-sm transition-all group"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
                     {/* Bank logo */}
                     <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-white font-bold text-base sm:text-lg flex-shrink-0"
                       style={{ backgroundColor: acc.primaryColor }}
                     >
                       {acc.templateName.charAt(0)}
                     </div>
 
                     {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5">
+                    <div className="flex-1 min-w-0 w-full">
+                      <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                         <span className="text-sm font-semibold text-gray-900">{acc.templateName}</span>
                         <span className="text-xs text-gray-400">·</span>
                         <span className="text-xs text-gray-400">{acc.countryCode}</span>
@@ -281,15 +281,15 @@ export default function MyAccounts() {
                     </div>
 
                     {/* Balance + arrow */}
-                    <div className="text-right flex items-center gap-3">
+                    <div className="text-right flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                       <div>
                         <div className="text-sm font-bold text-gray-900">
                           {acc.symbol}{acc.balance.toLocaleString()}
                         </div>
                         <div className="text-[10px] text-gray-400">Balance</div>
                       </div>
-                      <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center group-hover:bg-blue-50 transition">
-                        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-400" />
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-50 rounded-lg flex items-center justify-center group-hover:bg-blue-50 transition">
+                        <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-300 group-hover:text-blue-400" />
                       </div>
                     </div>
                   </div>

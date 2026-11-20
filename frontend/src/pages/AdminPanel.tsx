@@ -216,7 +216,7 @@ export default function AdminPanel() {
     return (
       <div className="min-h-screen bg-gray-100 flex">
         {/* Left - Branding */}
-        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-gray-800 to-black flex-col justify-between p-12 text-white">
+        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-gray-800 to-black flex-col justify-between p-8 lg:p-12 text-white">
           <div>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
@@ -236,9 +236,9 @@ export default function AdminPanel() {
         </div>
 
         {/* Right - Login */}
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="w-full max-w-md">
-            <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+          <div className="w-full max-w-sm sm:max-w-md">
+            <div className="bg-white rounded-2xl shadow-xl p-5 sm:p-8">
               <div className="text-center mb-6">
                 <div className="w-14 h-14 bg-gray-800 rounded-xl mx-auto mb-3 flex items-center justify-center">
                   <Lock className="w-6 h-6 text-white" />
@@ -320,14 +320,14 @@ export default function AdminPanel() {
         </div>
 
         {/* STATS */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
           {[
             { label: 'Total Accounts', value: totalAccounts.toString(), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Total Balance', value: `$${(totalBalance / 1000).toFixed(1)}k`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
             { label: 'Active Today', value: '12', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
             { label: 'Templates', value: '40+', icon: Building2, color: 'text-orange-600', bg: 'bg-orange-50' },
           ].map(stat => (
-            <div key={stat.label} className={`${stat.bg} rounded-xl p-4`}>
+            <div key={stat.label} className={`${stat.bg} rounded-xl p-3 sm:p-4`}>
               <div className="flex items-center gap-2 mb-2">
                 <stat.icon className={`w-4 h-4 ${stat.color}`} />
                 <div className="text-xs text-gray-500">{stat.label}</div>
@@ -338,24 +338,26 @@ export default function AdminPanel() {
         </div>
 
         {/* SEARCH */}
-        <div className="bg-white rounded-xl border border-gray-100 p-4 mb-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex-1 min-w-64 relative">
+        <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+            <div className="flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search accounts by name or holder..."
+                placeholder="Search..."
                 className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
             </div>
-            <button className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500 hover:bg-gray-100">
-              <Filter className="w-3.5 h-3.5" /> Filter
-            </button>
-            <button className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500 hover:bg-gray-100">
-              <Download className="w-3.5 h-3.5" /> Export
-            </button>
+            <div className="flex gap-1.5 sm:gap-2">
+              <button className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500 hover:bg-gray-100 whitespace-nowrap">
+                <Filter className="w-3.5 h-3.5" /> Filter
+              </button>
+              <button className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500 hover:bg-gray-100 whitespace-nowrap">
+                <Download className="w-3.5 h-3.5" /> Export
+              </button>
+            </div>
           </div>
         </div>
 
