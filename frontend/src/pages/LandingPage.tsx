@@ -4,12 +4,12 @@ import {
   Globe,
   Shield,
   Zap,
-  CreditCard,
+
   ArrowRight,
   ChevronRight,
   Star,
   Users,
-  TrendingUp,
+
   Smartphone,
   Lock,
   PieChart,

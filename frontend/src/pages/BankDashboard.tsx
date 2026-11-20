@@ -24,6 +24,8 @@ import {
   User,
   Phone,
   MapPin,
+  Lock,
+  Shield,
 } from 'lucide-react'
 import { BANK_TEMPLATES, getTemplate } from '../lib/bankTemplates'
 
@@ -44,10 +46,11 @@ interface AccountData {
   features: string[]
   createdAt: string
   status: string
+  tagline: string
 }
 
 // Generate fake transactions
-function generateTransactions(account: AccountData) {
+function generateTransactions(_account: AccountData) {
   const merchants = [
     'Amazon', 'Apple Store', 'Google Play', 'Netflix', 'Spotify',
     'Uber Eats', 'DoorDash', 'Walmart', 'Target', 'Best Buy',
@@ -126,6 +129,7 @@ export default function BankDashboard() {
           countryCode: template.countryCode,
           layout: template.layout,
           features: template.features,
+          tagline: template.tagline,
           createdAt: new Date().toISOString(),
           status: 'active' as const,
         })
