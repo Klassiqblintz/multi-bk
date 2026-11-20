@@ -30,6 +30,18 @@ export interface BankTemplate {
   balancePosition: 'top-left' | 'top-right' | 'center'
   txnsPosition: 'main' | 'side'
   cardStyle: 'flat' | 'lifted' | 'gradient'
+  // Unique layout config
+  layoutType: 'classic' | 'modern' | 'minimal' | 'grid' | 'split'
+  headerStyle: 'colored' | 'white' | 'gradient' | 'minimal'
+  balanceStyle: 'prominent' | 'compact' | 'detailed'
+  txnStyle: 'list' | 'compact' | 'detailed'
+  cardLayout: 'single' | 'multiple' | 'carousel'
+  accentColor: string
+  borderRadius: 'none' | 'sm' | 'md' | 'lg' | 'xl'
+  useDarkMode: boolean
+  showGreeting: boolean
+  showQuickActions: boolean
+  showSavingsGoals: boolean
 }
 
 export const BANK_TEMPLATES: BankTemplate[] = [
@@ -56,6 +68,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Überweisen', 'Lastschrift', 'Karte blockieren', 'Einsatz hinzufügen'],
     footerLinks: ['Über uns', 'Standorte', 'Karriere', 'Presse', 'Datenschutz', 'AGB'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'classic', headerStyle: 'colored', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#0056D6', borderRadius: 'lg', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'commerzbank',
@@ -79,6 +94,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Schnellüberweisung', 'Dauerauftrag', 'Karte sperren', 'PIN ändern'],
     footerLinks: ['Commerzbank', 'Standorte finden', 'Karriere', 'Presse', 'Impressum', 'Datenschutz'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#1A1A1A', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'sparkasse',
@@ -102,6 +120,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Überweisen', 'Einzahlen', 'Karte blockieren', 'PIN ändern'],
     footerLinks: ['Sparkasse', 'Filiale finden', 'Karriere', 'Presse', 'Datenschutz', 'Impressum'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'classic', headerStyle: 'colored', balanceStyle: 'prominent', txnStyle: 'detailed',
+    cardLayout: 'multiple', accentColor: '#FF0000', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: false,
   },
   {
     id: 'dkb',
@@ -125,6 +146,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Überweisen', 'Einzahlen', 'Konto wechseln', 'PIN ändern'],
     footerLinks: ['Über die DKB', 'Standorte', 'Karriere', 'Presse', 'Datenschutz', 'Impressum'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'minimal', headerStyle: 'minimal', balanceStyle: 'compact', txnStyle: 'compact',
+    cardLayout: 'single', accentColor: '#00B04F', borderRadius: 'none', useDarkMode: false,
+    showGreeting: false, showQuickActions: false, showSavingsGoals: false,
   },
   {
     id: 'ing',
@@ -148,6 +172,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Überweisen', 'Einzahlen', 'Konto wechseln', 'Girocard anfordern'],
     footerLinks: ['Über die ING', 'Filiale finden', 'Karriere', 'Presse', 'Datenschutz', 'Impressum'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'detailed', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#F9D327', borderRadius: 'xl', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
 
   // AUSTRALIA 🇦🇺
@@ -173,6 +200,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay', 'Transfer', 'Top Up', 'View Statements'],
     footerLinks: ['About Us', 'Locations', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'lifted',
+    layoutType: 'modern', headerStyle: 'colored', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#0070D0', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'anz',
@@ -196,6 +226,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay', 'Transfer', 'Top Up', 'View Statements'],
     footerLinks: ['About ANZ', 'Locations', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'classic', headerStyle: 'colored', balanceStyle: 'prominent', txnStyle: 'detailed',
+    cardLayout: 'multiple', accentColor: '#B01720', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: false,
   },
   {
     id: 'nab',
@@ -219,6 +252,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay', 'Transfer', 'Top Up', 'View Statements'],
     footerLinks: ['About NAB', 'Locations', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#1A1A1A', borderRadius: 'lg', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'westpac',
@@ -242,6 +278,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay', 'Transfer', 'Top Up', 'View Statements'],
     footerLinks: ['About Westpac', 'Locations', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'classic', headerStyle: 'colored', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#004D99', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'bendigo',
@@ -265,6 +304,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay', 'Transfer', 'Top Up', 'View Statements'],
     footerLinks: ['About Bendigo Bank', 'Locations', 'Careers', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'classic', headerStyle: 'colored', balanceStyle: 'detailed', txnStyle: 'compact',
+    cardLayout: 'single', accentColor: '#00994A', borderRadius: 'sm', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: false,
   },
 
   // USA 🇺🇸
@@ -290,6 +332,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Transfer & Pay', 'Invest', 'Apply for Credit Card', 'View Statements'],
     footerLinks: ['About Chase', 'Locations', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'lifted',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#0A4499', borderRadius: 'lg', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'bank-of-america',
@@ -313,6 +358,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Transfer & Pay', 'Investments', 'Apply', 'View Statements'],
     footerLinks: ['About BofA', 'Branch Locator', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'lifted',
+    layoutType: 'classic', headerStyle: 'colored', balanceStyle: 'prominent', txnStyle: 'detailed',
+    cardLayout: 'single', accentColor: '#0A4499', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'wells-fargo',
@@ -336,6 +384,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Transfer & Pay', 'Credit Cards', 'Investments', 'View Statements'],
     footerLinks: ['About Wells Fargo', 'Branches', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'lifted',
+    layoutType: 'classic', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#CF341E', borderRadius: 'lg', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'citibank',
@@ -359,6 +410,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Transfer & Pay', 'Cards', 'Investments', 'View Statements'],
     footerLinks: ['About Citi', 'Locations', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'compact', txnStyle: 'compact',
+    cardLayout: 'single', accentColor: '#005588', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: false, showSavingsGoals: false,
   },
   {
     id: 'goldman-sachs',
@@ -382,6 +436,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Transfer & Pay', 'Investments', 'Cards', 'View Statements'],
     footerLinks: ['About GS', 'Locations', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'minimal', balanceStyle: 'detailed', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#4E5E70', borderRadius: 'lg', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
 
   // FRANCE 🇫🇷
@@ -407,6 +464,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Effectuer un virement', 'Consulter mes comptes', 'Mes cartes', 'Mes relevés'],
     footerLinks: ['BNP Paribas', 'Agences', 'Carrières', 'Relations Investisseurs', 'Confidentialité', 'CGU'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'detailed', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#0088CE', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'credit-agricole',
@@ -430,6 +490,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Effectuer un virement', 'Mes cartes', 'Mes comptes', 'Mes relevés'],
     footerLinks: ['Crédit Agricole', 'Agences', 'Carrières', 'Relations Investisseurs', 'Confidentialité', 'CGU'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'classic', headerStyle: 'colored', balanceStyle: 'prominent', txnStyle: 'detailed',
+    cardLayout: 'multiple', accentColor: '#004488', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'socal',
@@ -453,6 +516,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Effectuer un virement', 'Mes cartes', 'Mes comptes', 'Mes relevés'],
     footerLinks: ['Société Générale', 'Agences', 'Carrières', 'Relations Investisseurs', 'Confidentialité', 'CGU'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'classic', headerStyle: 'colored', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#D60000', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: false,
   },
   {
     id: 'citc',
@@ -476,6 +542,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Effectuer un virement', 'Mes cartes', 'Mes comptes', 'Mes relevés'],
     footerLinks: ['CIC', 'Agences', 'Carrières', 'Relations Investisseurs', 'Confidentialité', 'CGU'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'compact', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#2A3F7F', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: false, showSavingsGoals: false,
   },
   {
     id: 'banque-postale',
@@ -499,6 +568,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Effectuer un virement', 'Mes cartes', 'Mes comptes', 'Mes relevés'],
     footerLinks: ['La Banque Postale', 'Agences', 'Carrières', 'Confidentialité', 'CGU'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#F06E00', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
 
   // ITALY 🇮🇹
@@ -524,6 +596,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Eseguire un bonifico', 'Le mie carte', 'I miei conti', 'Estratti'],
     footerLinks: ['UniCredit', 'Filiali', 'Carriere', 'Relazioni Investitori', 'Privacy', 'CGU'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#B71C1C', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'intesa',
@@ -547,6 +622,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Eseguire un bonifico', 'Le mie carte', 'I miei conti', 'Estratti'],
     footerLinks: ['Intesa Sanpaolo', 'Filiali', 'Carriere', 'Relazioni Investitori', 'Privacy', 'CGU'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'classic', headerStyle: 'colored', balanceStyle: 'prominent', txnStyle: 'detailed',
+    cardLayout: 'single', accentColor: '#008A3F', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: false,
   },
   {
     id: 'banco-bpm',
@@ -570,6 +648,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Eseguire un bonifico', 'Le mie carte', 'I miei conti', 'Estratti'],
     footerLinks: ['Banco BPM', 'Filiali', 'Carriere', 'Relazioni Investitori', 'Privacy', 'CGU'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'compact', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#0090CC', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: false, showSavingsGoals: false,
   },
   {
     id: 'mps',
@@ -593,6 +674,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Eseguire un bonifico', 'Le mie carte', 'I miei conti', 'Estratti'],
     footerLinks: ['Monte dei Paschi', 'Filiali', 'Carriere', 'Relazioni Investitori', 'Privacy', 'CGU'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'classic', headerStyle: 'colored', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#005CA9', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'fineco',
@@ -616,6 +700,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Eseguire un bonifico', 'Il mio portafoglio', 'Le mie carte', 'Estratti'],
     footerLinks: ['FinecoBank', 'Filiali', 'Carriere', 'Relazioni Investitori', 'Privacy', 'CGU'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'detailed', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#0068B7', borderRadius: 'lg', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
 
   // UK 🇬🇧
@@ -641,6 +728,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay & Transfer', 'Cards', 'Statements', 'Settings'],
     footerLinks: ['About Barclays', 'Branches', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'lifted',
+    layoutType: 'classic', headerStyle: 'colored', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#007A5F', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'hsbc',
@@ -664,6 +754,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay & Transfer', 'Cards', 'Statements', 'Settings'],
     footerLinks: ['About HSBC', 'Branches', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#E6001C', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'lloyds',
@@ -687,6 +780,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay & Transfer', 'Cards', 'Statements', 'Settings'],
     footerLinks: ['About Lloyds', 'Branches', 'Careers', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'lifted',
+    layoutType: 'classic', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'detailed',
+    cardLayout: 'single', accentColor: '#B80716', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'natwest',
@@ -710,6 +806,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay & Transfer', 'Cards', 'Statements', 'Settings'],
     footerLinks: ['About NatWest', 'Branches', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'compact', txnStyle: 'compact',
+    cardLayout: 'single', accentColor: '#001A44', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: false, showSavingsGoals: false,
   },
   {
     id: 'santander',
@@ -733,6 +832,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay & Transfer', 'Cards', 'Statements', 'Settings'],
     footerLinks: ['About Santander', 'Branches', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#FF0000', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
 
   // CANADA 🇨🇦
@@ -758,6 +860,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay & Transfer', 'Cards', 'Statements', 'Settings'],
     footerLinks: ['About RBC', 'Branches', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'classic', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#1D4A7E', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'td',
@@ -781,6 +886,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay & Transfer', 'Cards', 'Statements', 'Settings'],
     footerLinks: ['About TD', 'Branches', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#2A5FDD', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'scotiabank',
@@ -804,6 +912,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay & Transfer', 'Cards', 'Statements', 'Settings'],
     footerLinks: ['About Scotiabank', 'Branches', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'classic', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#C41F1E', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'bmo',
@@ -827,6 +938,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay & Transfer', 'Cards', 'Statements', 'Settings'],
     footerLinks: ['About BMO', 'Branches', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'classic', headerStyle: 'colored', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#A60613', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'cibc',
@@ -850,6 +964,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['Pay & Transfer', 'Cards', 'Statements', 'Settings'],
     footerLinks: ['About CIBC', 'Branches', 'Careers', 'Investor Relations', 'Privacy', 'Terms'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'compact', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#A50B1A', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: false, showSavingsGoals: false,
   },
 
   // JAPAN 🇯🇵
@@ -875,6 +992,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['送金・振込', '残高照会', 'カード利用状況', '明細書発行'],
     footerLinks: ['三菱UFJフィナンシャル・グループ', '店舗検索', '採用情報', 'IR情報', '個人情報保護方針', '利用条件'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'lifted',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#E60012', borderRadius: 'lg', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'smbc',
@@ -898,6 +1018,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['送金・振込', '明細書発行', 'カード利用状況', '残高照会'],
     footerLinks: ['三井住友銀行', '店舗検索', '採用情報', 'IR情報', '個人情報保護方針', '利用条件'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#003375', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'japan-post',
@@ -921,6 +1044,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['送金・振込', '出金・預け込み', '残高照会', '明細書発行'],
     footerLinks: ['日本郵政', '店舗検索', '採用情報', 'IR情報', '個人情報保護方針', '利用条件'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'classic', headerStyle: 'colored', balanceStyle: 'detailed', txnStyle: 'detailed',
+    cardLayout: 'single', accentColor: '#004D26', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: false,
   },
   {
     id: 'shinsei',
@@ -944,6 +1070,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['送金・振込', '残高照会', 'カード利用状況', '投資状況'],
     footerLinks: ['新生銀行', '店舗検索', '採用情報', 'IR情報', '個人情報保護方針', '利用条件'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'lifted',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'prominent', txnStyle: 'list',
+    cardLayout: 'single', accentColor: '#001F5F', borderRadius: 'lg', useDarkMode: false,
+    showGreeting: true, showQuickActions: true, showSavingsGoals: true,
   },
   {
     id: 'resona',
@@ -967,6 +1096,9 @@ export const BANK_TEMPLATES: BankTemplate[] = [
     quickActions: ['送金・振込', '残高照会', 'カード利用状況', '住宅ローン状況'],
     footerLinks: ['リーゼント銀行', '店舗検索', '採用情報', 'IR情報', '個人情報保護方針', '利用条件'],
     balancePosition: 'top-left', txnsPosition: 'main', cardStyle: 'flat',
+    layoutType: 'modern', headerStyle: 'gradient', balanceStyle: 'compact', txnStyle: 'compact',
+    cardLayout: 'single', accentColor: '#002A70', borderRadius: 'md', useDarkMode: false,
+    showGreeting: true, showQuickActions: false, showSavingsGoals: false,
   },
 ]
 

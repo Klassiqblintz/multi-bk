@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowRightLeft,
+  Target,
   CreditCard,
   FileText,
   Bell,
@@ -26,8 +27,19 @@ import {
   MapPin,
   Lock,
   Shield,
+  TrendingUp,
+  TrendingDown,
+  PiggyBank,
+  BarChart3,
+  Filter,
+  X,
+  CheckCircle,
+  Trash2,
+  ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react'
 import { BANK_TEMPLATES, getTemplate } from '../lib/bankTemplates'
+import BankDashboardLayout from '../components/BankDashboardLayout'
 
 interface AccountData {
   id: string
@@ -47,6 +59,17 @@ interface AccountData {
   createdAt: string
   status: string
   tagline: string
+  layoutType?: string
+  headerStyle?: string
+  balanceStyle?: string
+  txnStyle?: string
+  cardLayout?: string
+  accentColor?: string
+  borderRadius?: string
+  showGreeting?: boolean
+  showQuickActions?: boolean
+  showSavingsGoals?: boolean
+  accountTypes?: string[]
 }
 
 // Generate fake transactions
@@ -86,7 +109,6 @@ export default function BankDashboard() {
   const [account, setAccount] = useState<AccountData | null>(null)
   const [activeTab, setActiveTab] = useState<'home' | 'transfer' | 'cards' | 'statements' | 'settings'>('home')
   const [showBalance, setShowBalance] = useState(true)
-  const [transactions] = useState(() => [])
   const [transferForm, setTransferForm] = useState({ recipient: '', amount: '', notes: '' })
   const [transferSuccess, setTransferSuccess] = useState(false)
   const [loginEmail, setLoginEmail] = useState('')
@@ -94,6 +116,68 @@ export default function BankDashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [showAddFunds, setShowAddFunds] = useState(false)
   const [addAmount, setAddAmount] = useState('')
+  const [txnFilter, setTxnFilter] = useState<'all' | 'credit' | 'debit'>('all')
+  const [txnSearch, setTxnSearch] = useState('')
+  const [showSavingsGoals, setShowSavingsGoals] = useState(false)
+  const [cardFrozen, setCardFrozen] = useState(false)
+  const [cardPin, setCardPin] = useState('4242')
+  const [showCardMenu, setShowCardMenu] = useState<string | null>(null)
+  const [accountType, setAccountType] = useState('')
+  const [savingsGoalsState, setSavingsGoalsState] = useState(0)
+
+  const location = useLocation()
+
+  // Derive active tab from URL hash or default
+  const currentTab = useMemo(() => {
+    const hash = location.hash.replace('#', '')
+    const validTabs = ['home', 'transfer', 'cards', 'statements', 'settings']
+    return (validTabs.includes(hash as any) ? hash : 'home') as typeof activeTab
+  }, [location.hash])
+
+  // Filtered transactions
+  const filteredTxns = useMemo(() => {
+    if (!account) return []
+    const allTxns = generateTransactions(account)
+    return allTxns.filter(t => {
+      const matchType = txnFilter === 'all' || t.type === txnFilter
+      const matchSearch = !txnSearch || t.description.toLowerCase().includes(txnSearch.toLowerCase()) || (t.counterparty || '').toLowerCase().includes(txnSearch.toLowerCase())
+      return matchType && matchSearch
+    })
+  }, [account, txnFilter, txnSearch])
+
+  // Spending categories
+  const spendingCategories = useMemo(() => {
+    if (!account) return []
+    const txns = generateTransactions(account).filter(t => t.type === 'debit')
+    const categories: Record<string, number> = {}
+    txns.forEach(t => {
+      const cat = t.description || 'Other'
+      categories[cat] = (categories[cat] || 0) + parseFloat(t.amount)
+    })
+    const max = Math.max(...Object.values(categories), 1)
+    return Object.entries(categories)
+      .map(([name, amount]) => ({ name, amount, width: (amount / max) * 100 })
+      )
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 8)
+  }, [account])
+
+  // Savings goals
+  const savingsGoals = useMemo(() => {
+    const goals = [
+      { name: 'Emergency Fund', target: 50000, current: account ? account.balance * 0.3 : 15000, color: '#10B981' },
+      { name: 'Vacation Fund', target: 20000, current: 8500, color: '#3B82F6' },
+      { name: 'New Car', target: 100000, current: 35000, color: '#8B5CF6' },
+    ]
+    return goals
+  }, [account])
+
+  // Initialize account type from template
+  useEffect(() => {
+    if (account && account.accountTypes && account.accountTypes.length > 0 && !accountType) {
+      setAccountType(account.accountTypes[0])
+    }
+  }, [account, accountType])
 
   useEffect(() => {
     // Try to load from localStorage or use template defaults
@@ -101,12 +185,50 @@ export default function BankDashboard() {
     if (stored) {
       const acc = JSON.parse(stored)
       if (acc.id === accountId) {
-        setAccount(acc)
+        const template = getTemplate(acc.templateId)
+        setAccount({
+          ...acc,
+          templateName: template?.name || acc.templateName,
+          symbol: template?.symbol || acc.symbol,
+          currency: template?.currency || acc.currency,
+          primaryColor: template?.primaryColor || acc.primaryColor,
+          secondaryColor: template?.secondaryColor || acc.secondaryColor,
+          layoutType: template?.layoutType || 'modern',
+          headerStyle: template?.headerStyle || 'colored',
+          balanceStyle: template?.balanceStyle || 'prominent',
+          txnStyle: template?.txnStyle || 'list',
+          cardLayout: template?.cardLayout || 'single',
+          accentColor: template?.accentColor || template?.secondaryColor,
+          borderRadius: template?.borderRadius || 'md',
+          showGreeting: template?.showGreeting ?? true,
+          showQuickActions: template?.showQuickActions ?? true,
+          showSavingsGoals: template?.showSavingsGoals ?? true,
+          accountTypes: template?.accountTypes || [],
+        })
       } else {
         // Load by templateId
         const template = getTemplate(acc.templateId)
         if (template) {
-          setAccount({ ...acc, balance: 50000, symbol: template.symbol, currency: template.currency })
+          setAccount({
+            ...acc,
+            templateName: template.name,
+            symbol: template.symbol,
+            currency: template.currency,
+            primaryColor: template.primaryColor,
+            secondaryColor: template.secondaryColor,
+            layoutType: template.layoutType || 'modern',
+            headerStyle: template.headerStyle || 'colored',
+            balanceStyle: template.balanceStyle || 'prominent',
+            txnStyle: template.txnStyle || 'list',
+            cardLayout: template.cardLayout || 'single',
+            accentColor: template.accentColor || template.secondaryColor,
+            borderRadius: template.borderRadius || 'md',
+            showGreeting: template.showGreeting ?? true,
+            showQuickActions: template.showQuickActions ?? true,
+            showSavingsGoals: template.showSavingsGoals ?? true,
+            accountTypes: template.accountTypes || [],
+            balance: 50000,
+          })
         }
       }
     } else {
@@ -131,17 +253,26 @@ export default function BankDashboard() {
           tagline: template.tagline,
           createdAt: new Date().toISOString(),
           status: 'active' as const,
+          layoutType: template.layoutType || 'modern',
+          headerStyle: template.headerStyle || 'colored',
+          balanceStyle: template.balanceStyle || 'prominent',
+          txnStyle: template.txnStyle || 'list',
+          cardLayout: template.cardLayout || 'single',
+          accentColor: template.accentColor || template.secondaryColor,
+          borderRadius: template.borderRadius || 'md',
+          showGreeting: template.showGreeting ?? true,
+          showQuickActions: template.showQuickActions ?? true,
+          showSavingsGoals: template.showSavingsGoals ?? true,
+          accountTypes: template.accountTypes || [],
         })
       }
     }
   }, [accountId])
 
-  const displayedBalance = showBalance ? account!.balance : null
-
   const handleTransfer = () => {
     if (!transferForm.amount || !transferForm.recipient) return
     const amount = parseFloat(transferForm.amount)
-    if (amount > account!.balance) return
+    if (amount > (account?.balance || 0)) return
     setAccount(prev => prev ? { ...prev, balance: prev.balance - amount } : null)
     setTransferSuccess(true)
     setTransferForm({ recipient: '', amount: '', notes: '' })
@@ -161,6 +292,10 @@ export default function BankDashboard() {
     if (loginEmail && loginPass) {
       setIsLoggedIn(true)
     }
+  }
+
+  const handleLogout = () => {
+    setIsLoggedIn(false)
   }
 
   if (!account) return null
@@ -279,494 +414,42 @@ export default function BankDashboard() {
     )
   }
 
-  // MAIN DASHBOARD
-  const txns = generateTransactions(account)
-
-  const tabs = [
-    { id: 'home' as const, label: 'Home', icon: Home },
-    { id: 'transfer' as const, label: 'Transfer', icon: ArrowRightLeft },
-    { id: 'cards' as const, label: 'Cards', icon: CreditCard },
-    { id: 'statements' as const, label: 'Statements', icon: FileText },
-    { id: 'settings' as const, label: 'Settings', icon: Settings },
-  ]
-
-  const countryFlag: Record<string, string> = {
-    'DE': '🇩🇪', 'AU': '🇦🇺', 'US': '🇺🇸',
-    'FR': '🇫🇷', 'IT': '🇮🇹', 'GB': '🇬🇧', 'CA': '🇨🇦',
-  }
-
-  // Don't render dashboard content until logged in
-  if (!isLoggedIn) return null
-
+  // MAIN DASHBOARD - use BankDashboardLayout component
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* TOP BAR - per-bank themed */}
-      <header className="sticky top-0 z-40 border-b" style={{ backgroundColor: account.primaryColor, borderColor: `${account.primaryColor}30` }}>
-        <div className="flex items-center justify-between px-4 sm:px-6 h-14">
-          {/* Left: bank name */}
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-white/20 rounded flex items-center justify-center text-white font-bold text-xs">
-              {account.templateName.charAt(0)}
-            </div>
-            <span className="text-sm font-semibold text-white">{account.templateName}</span>
-            <span className="text-xs text-white/50 hidden sm:inline">|</span>
-            <span className="text-xs text-white/50 hidden sm:inline">{account.accountHolder}</span>
-          </div>
-
-          {/* Right actions */}
-          <div className="flex items-center gap-1">
-            <button onClick={() => setShowBalance(!showBalance)} className="p-1.5 text-white/70 hover:text-white transition" title="Toggle balance">
-              {showBalance ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-            </button>
-            <button
-              onClick={() => setShowAddFunds(!showAddFunds)}
-              className="p-1.5 text-white/70 hover:text-white transition"
-              title="Add funds (admin)"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setIsLoggedIn(false)}
-              className="p-1.5 text-white/70 hover:text-white transition"
-              title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* ADD FUNDS BAR (Admin) */}
-        {showAddFunds && (
-          <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-              <Plus className="w-4 h-4 text-green-600" />
-            </div>
-            <div className="flex-1 flex items-center gap-2">
-              <span className="text-sm font-medium text-green-800">Add Funds:</span>
-              <span className="text-sm text-green-600">{account.symbol}</span>
-              <input
-                type="number"
-                value={addAmount}
-                onChange={e => setAddAmount(e.target.value)}
-                placeholder="Amount"
-                className="w-28 px-2 py-1.5 bg-white border border-green-200 rounded text-sm text-green-800 focus:outline-none focus:border-green-400"
-              />
-              <button
-                onClick={handleAddFunds}
-                className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700"
-              >
-                Add Funds
-              </button>
-              <button onClick={() => setShowAddFunds(false)} className="text-green-400 hover:text-green-600">
-                <XIcon />
-              </button>
-            </div>
-            <div className="text-xs text-green-500">
-              Current: {account.symbol}{account.balance.toLocaleString()}
-            </div>
-          </div>
-        )}
-
-        {/* TABS */}
-        <div className="flex gap-1 mb-6 bg-white rounded-xl p-1 border border-gray-100 max-w-fit">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === tab.id
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* HOME */}
-        {activeTab === 'home' && (
-          <div className="space-y-6">
-            {/* Balance card */}
-            <div
-              className="rounded-2xl p-6 text-white relative overflow-hidden"
-              style={{ background: `linear-gradient(135deg, ${account.primaryColor}, ${account.secondaryColor || account.primaryColor})` }
-              }
-            >
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-              <div className="relative">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <div className="text-sm text-white/60 mb-1">{account.templateName}</div>
-                    <div className="text-xs text-white/40">Personal Account</div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm">{countryFlag[account.countryCode] || ''} {account.country}</span>
-                    <button onClick={() => setShowBalance(!showBalance)} className="p-1.5 bg-white/10 rounded-lg hover:bg-white/20 transition">
-                      {showBalance ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <div className="text-sm text-white/60 mb-1">Available Balance</div>
-                  <div className="text-3xl sm:text-4xl font-bold">
-                    {account.symbol}{showBalance ? account.balance.toLocaleString() : '••••••'}
-                    {showBalance && '.00'}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <button className="flex items-center gap-1.5 px-4 py-2 bg-white/15 rounded-lg text-sm font-medium hover:bg-white/25 transition">
-                    <ArrowRightLeft className="w-4 h-4" /> Transfer
-                  </button>
-                  <button className="flex items-center gap-1.5 px-4 py-2 bg-white/15 rounded-lg text-sm font-medium hover:bg-white/25 transition">
-                    <CreditCard className="w-4 h-4" /> Cards
-                  </button>
-                  <button className="flex items-center gap-1.5 px-4 py-2 bg-white/15 rounded-lg text-sm font-medium hover:bg-white/25 transition">
-                    <FileText className="w-4 h-4" /> Statements
-                  </button>
-                  <button className="flex items-center gap-1.5 px-4 py-2 bg-white/15 rounded-lg text-sm font-medium hover:bg-white/25 transition">
-                    <Settings className="w-4 h-4" /> Settings
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { label: 'Income', value: '+24,500.00', color: 'text-green-600', bg: 'bg-green-50' },
-                { label: 'Expenses', value: '-3,280.50', color: 'text-red-500', bg: 'bg-red-50' },
-                { label: 'Savings', value: '€18,219.50', color: 'text-blue-600', bg: 'bg-blue-50' },
-                { label: 'Cards', value: '2 Active', color: 'text-gray-700', bg: 'bg-gray-100' },
-              ].map(stat => (
-                <div key={stat.label} className={`${stat.bg} rounded-xl p-3`}>
-                  <div className="text-xs text-gray-500 mb-1">{stat.label}</div>
-                  <div className={`text-sm font-bold ${stat.color}`}>{stat.value}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Account info */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="bg-white rounded-xl border border-gray-100 p-5">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Account Details</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Account Holder</span>
-                    <span className="font-medium">{account.accountHolder}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Account Number</span>
-                    <span className="font-mono font-medium">•••• {account.id.slice(-4)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">IBAN</span>
-                    <span className="font-mono font-medium">{account.countryCode}12 3456 7890 1234 5678 90</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">SWIFT</span>
-                    <span className="font-mono font-medium">{account.countryCode}10</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Currency</span>
-                    <span className="font-medium">{account.currency}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Status</span>
-                    <span className="text-green-500 font-medium">Active</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl border border-gray-100 p-5">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Recent Transactions</h3>
-                <div className="space-y-2">
-                  {txns.slice(0, 5).map(txn => (
-                    <div key={txn.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          txn.type === 'credit' ? 'bg-green-50' : 'bg-red-50'
-                        }`}>
-                          {txn.type === 'credit' ? (
-                            <ArrowUpRight className="w-4 h-4 text-green-500" />
-                          ) : (
-                            <ArrowDownLeft className="w-4 h-4 text-red-500" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{txn.description}</div>
-                          <div className="text-xs text-gray-400">{txn.date}</div>
-                        </div>
-                      </div>
-                      <span className={`text-sm font-medium ${
-                        txn.type === 'credit' ? 'text-green-600' : 'text-red-500'
-                      }`}>
-                        {txn.type === 'credit' ? '+' : '-'}{account.symbol}{txn.amount}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <button className="mt-3 text-sm text-blue-600 hover:underline font-medium">
-                  View All Transactions →
-                </button>
-              </div>
-            </div>
-
-            {/* Full transaction history */}
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-900">Transaction History</h3>
-                <button className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1.5">
-                  <Download className="w-3.5 h-3.5" /> Export
-                </button>
-              </div>
-              <div className="space-y-1">
-                {txns.map(txn => (
-                  <div key={txn.id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                        txn.type === 'credit' ? 'bg-green-50' : 'bg-red-50'
-                      }`}>
-                        {txn.type === 'credit' ? (
-                          <ArrowUpRight className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <ArrowDownLeft className="w-4 h-4 text-red-500" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{txn.description}</div>
-                        <div className="text-xs text-gray-400">{txn.date} · {txn.status}</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-sm font-bold ${
-                        txn.type === 'credit' ? 'text-green-600' : 'text-red-500'
-                      }`}>
-                        {txn.type === 'credit' ? '+' : '-'}{account.symbol}{txn.amount}
-                      </div>
-                      <div className="text-xs text-gray-400 font-mono">
-                        {account.countryCode}12 3456 7890 1234 5678 90
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TRANSFER */}
-        {activeTab === 'transfer' && (
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-xl border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Transfer Money</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Recipient Name</label>
-                  <input
-                    type="text"
-                    value={transferForm.recipient}
-                    onChange={e => setTransferForm({...transferForm, recipient: e.target.value})}
-                    className="bank-input"
-                    placeholder="Full name of recipient"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Account / IBAN</label>
-                  <input
-                    type="text"
-                    className="bank-input"
-                    placeholder="DE12 3456 7890 1234 5678 90"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Amount ({account.symbol})</label>
-                  <input
-                    type="number"
-                    value={transferForm.amount}
-                    onChange={e => setTransferForm({...transferForm, amount: e.target.value})}
-                    className="bank-input"
-                    placeholder="0.00"
-                  />
-                  <div className="text-xs text-gray-400 mt-1">Available: {account.symbol}{account.balance.toLocaleString()}.00</div>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Notes (optional)</label>
-                  <input
-                    type="text"
-                    value={transferForm.notes}
-                    onChange={e => setTransferForm({...transferForm, notes: e.target.value})}
-                    className="bank-input"
-                    placeholder="Payment reference"
-                  />
-                </div>
-
-                {transferSuccess && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    <span className="text-sm text-green-700 font-medium">Transfer completed successfully!</span>
-                  </div>
-                )}
-
-                <button
-                  onClick={handleTransfer}
-                  disabled={!transferForm.amount || !transferForm.recipient}
-                  className="w-full bank-btn-primary py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <Send className="w-4 h-4" /> Send Transfer
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* CARDS */}
-        {activeTab === 'cards' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Your Cards</h2>
-              <button className="bank-btn-secondary flex items-center gap-1.5 text-xs">
-                <Plus className="w-3.5 h-3.5" /> Add Card
-              </button>
-            </div>
-
-            {/* Credit card */}
-            <div className="w-full max-w-md">
-              <div
-                className="rounded-2xl p-6 text-white relative overflow-hidden aspect-[1.586/1] flex flex-col justify-between"
-                style={{ background: `linear-gradient(135deg, ${account.primaryColor}, ${account.secondaryColor || account.primaryColor})` }
-                }
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">{account.templateName}</div>
-                  <div className="text-xs text-white/60">Debit Card</div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-6 bg-yellow-300/80 rounded" />
-                </div>
-                <div>
-                  <div className="text-lg font-mono tracking-wider">
-                    •••• •••• •••• {Math.random().toString().slice(2, 6)}
-                  </div>
-                  <div className="flex justify-between mt-1">
-                    <div className="text-xs text-white/50">
-                      VALID THRU<br/>12/28
-                    </div>
-                    <div className="text-xs text-white/50">
-                      {account.accountHolder.toUpperCase()}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <div className="text-xs text-white/40">VISA</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Card details */}
-            <div className="bg-white rounded-xl border border-gray-100 p-5 max-w-md">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Card Details</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Card Number</span>
-                  <span className="font-mono font-medium">•••• •••• •••• 4242</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Expiry</span>
-                  <span className="font-medium">12/28</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">CVV</span>
-                  <span className="font-medium">•••</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Status</span>
-                  <span className="text-green-500 font-medium">Active</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Daily Limit</span>
-                  <span className="font-medium">{account.symbol}10,000</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STATEMENTS */}
-        {activeTab === 'statements' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-900">Statements</h2>
-            {['November 2024', 'October 2024', 'September 2024', 'August 2024'].map(month => (
-              <div key={month} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">{month}</div>
-                  <div className="text-xs text-gray-400">PDF · 2.4 MB</div>
-                </div>
-                <button className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700">
-                  <Download className="w-3.5 h-3.5" /> Download
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* SETTINGS */}
-        {activeTab === 'settings' && (
-          <div className="max-w-xl mx-auto space-y-6">
-            <h2 className="text-lg font-bold text-gray-900">Settings</h2>
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Profile</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
-                  <input type="text" defaultValue={account.accountHolder} className="bank-input" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
-                  <input type="email" defaultValue="user@example.com" className="bank-input" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
-                  <input type="tel" defaultValue="+1 234 567 890" className="bank-input" />
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Security</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Current Password</label>
-                  <input type="password" className="bank-input" placeholder="••••••••" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">New Password</label>
-                  <input type="password" className="bank-input" placeholder="••••••••" />
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button className="flex-1 bank-btn-primary">Save Changes</button>
-              <button className="flex-1 bank-btn-danger">Delete Account</button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function MenuIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
+    <BankDashboardLayout
+      account={account}
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      showBalance={showBalance}
+      setShowBalance={setShowBalance}
+      showAddFunds={showAddFunds}
+      setShowAddFunds={setShowAddFunds}
+      addAmount={addAmount}
+      setAddAmount={setAddAmount}
+      handleAddFunds={handleAddFunds}
+      handleTransfer={handleTransfer}
+      transferForm={transferForm}
+      setTransferForm={setTransferForm}
+      transferSuccess={transferSuccess}
+      cardFrozen={cardFrozen}
+      setCardFrozen={setCardFrozen}
+      cardPin={cardPin}
+      setCardPin={setCardPin}
+      showCardMenu={showCardMenu}
+      setShowCardMenu={setShowCardMenu}
+      txnFilter={txnFilter}
+      setTxnFilter={setTxnFilter}
+      txnSearch={txnSearch}
+      setTxnSearch={setTxnSearch}
+      filteredTxns={filteredTxns}
+      spendingCategories={spendingCategories}
+      savingsGoals={savingsGoals}
+      showSavingsGoals={showSavingsGoals}
+      setShowSavingsGoals={setShowSavingsGoals}
+      accountType={accountType}
+      setAccountType={setAccountType}
+      onLogout={handleLogout}
+    />
   )
 }
 
