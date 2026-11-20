@@ -43,6 +43,11 @@ interface BankDashboardLayoutProps {
   transferForm: any
   setTransferForm: (v: any) => void
   transferSuccess: boolean
+  transferToSelf: boolean
+  setTransferToSelf: (v: boolean) => void
+  targetAccountId: string
+  setTargetAccountId: (v: string) => void
+  otherAccounts: any[]
   cardFrozen: boolean
   setCardFrozen: (v: boolean) => void
   cardPin: string
@@ -61,6 +66,11 @@ interface BankDashboardLayoutProps {
   accountType: string
   setAccountType: (v: string) => void
   onLogout: () => void
+  selectedTxn: any
+  setSelectedTxn: (v: any) => void
+  showTxnDetails: boolean
+  setShowTxnDetails: (v: boolean) => void
+  exportCsv: () => void
 }
 
 export default function BankDashboardLayout({
@@ -78,6 +88,11 @@ export default function BankDashboardLayout({
   transferForm,
   setTransferForm,
   transferSuccess,
+  transferToSelf,
+  setTransferToSelf,
+  targetAccountId,
+  setTargetAccountId,
+  otherAccounts,
   cardFrozen,
   setCardFrozen,
   cardPin,
@@ -96,6 +111,11 @@ export default function BankDashboardLayout({
   accountType,
   setAccountType,
   onLogout,
+  selectedTxn,
+  setSelectedTxn,
+  showTxnDetails,
+  setShowTxnDetails,
+  exportCsv,
 }: BankDashboardLayoutProps) {
   const headerStyle = account.headerStyle || 'colored'
   const balanceStyle = account.balanceStyle || 'prominent'
@@ -182,9 +202,13 @@ export default function BankDashboardLayout({
     if (txnStyle === 'compact') {
       // Compact: minimal info, just the essentials
       return (
-        <div key={txn.id} className={`flex items-center justify-between py-1.5 ${
-          index < filteredTxns.length - 1 ? 'border-b border-gray-50' : ''
-        }`}>
+        <button
+          key={txn.id}
+          onClick={() => { setSelectedTxn(txn); setShowTxnDetails(true) }}
+          className={`w-full flex items-center justify-between py-1.5 cursor-pointer ${
+            index < filteredTxns.length - 1 ? 'border-b border-gray-50' : ''
+          } hover:bg-gray-50 -mx-2 px-2 rounded`}
+        >
           <div className="flex items-center gap-2">
             <div className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold ${
               isCredit ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
@@ -201,16 +225,20 @@ export default function BankDashboardLayout({
           }`}>
             {isCredit ? '+' : '-'}{account.symbol}{amountStr}
           </span>
-        </div>
+        </button>
       )
     }
 
     if (txnStyle === 'detailed') {
       // Detailed: full info with category and status
       return (
-        <div key={txn.id} className={`py-3 border-b border-gray-100 last:border-0 ${
-          txn.status === 'pending' ? 'bg-yellow-50/50' : ''
-        }`}>
+        <button
+          key={txn.id}
+          onClick={() => { setSelectedTxn(txn); setShowTxnDetails(true) }}
+          className={`w-full text-left py-3 border-b border-gray-100 last:border-0 cursor-pointer -mx-2 px-2 rounded hover:bg-gray-50 transition ${
+            txn.status === 'pending' ? 'bg-yellow-50/50' : ''
+          }`}
+        >
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-2.5">
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
@@ -226,7 +254,7 @@ export default function BankDashboardLayout({
                 <div className="text-sm font-semibold text-gray-900">{txn.description}</div>
                 <div className="text-xs text-gray-400 mt-1">{txn.date} · {txn.status}</div>
                 <div className="text-[10px] text-gray-300 mt-1">
-                  {txn.counterparty || 'Unknown'} · Ref #{txn.id.slice(-6)}
+                  {txn.counterparty || 'Unknown'} · Ref #{txn.id?.slice(-6) || ''}
                 </div>
               </div>
             </div>
@@ -241,13 +269,17 @@ export default function BankDashboardLayout({
               </div>
             </div>
           </div>
-        </div>
+        </button>
       )
     }
 
     // Default list style
     return (
-      <div key={txn.id} className={`flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0`}>
+      <button
+        key={txn.id}
+        onClick={() => { setSelectedTxn(txn); setShowTxnDetails(true) }}
+        className="w-full flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0 cursor-pointer -mx-2 px-2 rounded hover:bg-gray-50 transition"
+      >
         <div className="flex items-center gap-2.5">
           <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
             isCredit ? 'bg-green-50' : 'bg-red-50'
@@ -271,7 +303,7 @@ export default function BankDashboardLayout({
           </div>
           <div className="text-[10px] text-gray-400">{currencyLabel[account.currency] || ''}</div>
         </div>
-      </div>
+      </button>
     )
   }
 
@@ -646,10 +678,12 @@ export default function BankDashboardLayout({
             <div className="bg-white rounded-xl border border-gray-100 p-5">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
                 <h3 className="text-sm font-semibold text-gray-900">Transaction History</h3>
-                <div className="flex items-center gap-1.5">
-                  <Download className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">Export Statements</span>
-                </div>
+                <button
+                  onClick={exportCsv}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition"
+                >
+                  <Download className="w-3.5 h-3.5" /> Export CSV
+                </button>
               </div>
 
               {/* FILTERS */}
@@ -701,27 +735,72 @@ export default function BankDashboardLayout({
         {activeTab === 'transfer' && (
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-xl border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-1">Transfer Money</h3>
-              <p className="text-sm text-gray-500 mb-5">Send money to anyone, anywhere</p>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-lg font-bold text-gray-900">Transfer Money</h3>
+                <button
+                  onClick={() => setTransferToSelf(!transferToSelf)}
+                  className={`text-xs font-medium px-2.5 py-1.5 rounded-lg transition ${
+                    transferToSelf
+                      ? 'bg-blue-100 text-blue-600'
+                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                  }`}
+                >
+                  {transferToSelf ? 'Send to anyone' : 'Transfer to my account'}
+                </button>
+              </div>
+              <p className="text-sm text-gray-500 mb-5">
+                {transferToSelf ? 'Send money between your own accounts' : 'Send money to anyone, anywhere'}
+              </p>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Recipient Name</label>
-                  <input
-                    type="text"
-                    value={transferForm.recipient}
-                    onChange={e => setTransferForm({...transferForm, recipient: e.target.value})}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                    placeholder="Full name of recipient"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Account / IBAN</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                    placeholder={account.countryCode === 'JP' ? '0000 0000 0000' : `${account.countryCode}12 3456 7890 1234 5678 90`}
-                  />
-                </div>
+                {transferToSelf ? (
+                  // TRANSFER TO MY ACCOUNT
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">From</label>
+                    <div className="px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700 font-medium">
+                      {account.templateName} · {account.symbol}{account.balance.toLocaleString()}.00
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Recipient Name</label>
+                    <input
+                      type="text"
+                      value={transferForm.recipient}
+                      onChange={e => setTransferForm({...transferForm, recipient: e.target.value})}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      placeholder="Full name of recipient"
+                    />
+                  </div>
+                )}
+                {transferToSelf ? (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">To (Select Account)</label>
+                    <select
+                      value={targetAccountId}
+                      onChange={e => setTargetAccountId(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    >
+                      <option value="">Select a destination account...</option>
+                      {otherAccounts.map(acc => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.templateName} ({acc.accountHolder}) · {acc.symbol}{acc.balance.toLocaleString()}.00
+                        </option>
+                      ))}
+                    </select>
+                    {otherAccounts.length === 0 && (
+                      <p className="text-xs text-gray-400 mt-1">Create more accounts to enable transfers between them</p>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Account / IBAN</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      placeholder={account.countryCode === 'JP' ? '0000 0000 0000' : `${account.countryCode}12 3456 7890 1234 5678 90`}
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">Amount ({account.symbol})</label>
                   <input
@@ -753,12 +832,12 @@ export default function BankDashboardLayout({
 
                 <button
                   onClick={handleTransfer}
-                  disabled={!transferForm.amount || !transferForm.recipient}
+                  disabled={!transferForm.amount || (transferToSelf ? !targetAccountId : !transferForm.recipient)}
                   className="w-full text-white font-medium py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: account.primaryColor }}
                 >
                   <div className="flex items-center justify-center gap-1.5">
-                    <Send className="w-4 h-4" /> Send Transfer
+                    <Send className="w-4 h-4" /> {transferToSelf ? 'Transfer Now' : 'Send Transfer'}
                   </div>
                 </button>
               </div>
@@ -1006,6 +1085,74 @@ export default function BankDashboardLayout({
             <div className="flex gap-2">
               <button className="flex-1 text-white font-medium py-2.5 rounded-lg transition-all" style={{ backgroundColor: account.primaryColor }}>Save Changes</button>
               <button className="flex-1 bg-red-50 border border-red-200 text-red-600 font-medium py-2.5 rounded-lg hover:bg-red-100 transition-all">Delete Account</button>
+            </div>
+          </div>
+        )}
+
+        {/* TRANSACTION DETAILS MODAL */}
+        {showTxnDetails && selectedTxn && (
+          <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowTxnDetails(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900">Transaction Details</h3>
+                <button
+                  onClick={() => setShowTxnDetails(false)}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    selectedTxn.type === 'credit' ? 'bg-green-100' : 'bg-red-100'
+                  }`}>
+                    {selectedTxn.type === 'credit' ? (
+                      <ArrowUpRight className="w-5 h-5 text-green-600" />
+                    ) : (
+                      <ArrowDownLeft className="w-5 h-5 text-red-500" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-gray-900">{selectedTxn.description || 'Transaction'}</div>
+                    <div className="text-xs text-gray-400">{selectedTxn.type === 'credit' ? 'Credit' : 'Debit'} Transaction</div>
+                  </div>
+                  <div className={`text-base font-bold ${
+                    selectedTxn.type === 'credit' ? 'text-green-600' : 'text-red-500'
+                  }`}>
+                    {selectedTxn.type === 'credit' ? '+' : '-'}{account.symbol}{selectedTxn.amount}
+                  </div>
+                </div>
+                <div className="border-t border-gray-100 pt-3 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Date</span>
+                    <span className="font-medium">{selectedTxn.date || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Status</span>
+                    <span className={`font-medium ${
+                      selectedTxn.status === 'completed' ? 'text-green-600' :
+                      selectedTxn.status === 'pending' ? 'text-yellow-600' : 'text-red-500'
+                    }`}>
+                      {selectedTxn.status || 'Unknown'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Counterparty</span>
+                    <span className="font-medium text-right max-w-[60%] truncate">{selectedTxn.counterparty || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Reference</span>
+                    <span className="font-mono text-xs text-gray-500">{selectedTxn.id?.slice(-8) || 'N/A'}</span>
+                  </div>
+                  {selectedTxn.notes && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Notes</span>
+                      <span className="text-sm text-gray-700 text-right max-w-[60%] truncate">{selectedTxn.notes}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}

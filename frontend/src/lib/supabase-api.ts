@@ -231,7 +231,7 @@ export async function createTransaction(accountId: string, txn: Partial<Transact
 export async function deleteTransaction(txnId: string): Promise<boolean> {
   const { error } = await supabase
     .from('transactions')
-    .delete()
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
     .eq('id', txnId)
   return !error
 }

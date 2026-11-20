@@ -121,7 +121,7 @@ export default function BankDashboard() {
   const { accountId } = useParams<{ accountId: string }>()
   const navigate = useNavigate()
   const location = useLocation()
-  const { signOut } = useAuth()
+  const { userId, signOut } = useAuth()
   const [account, setAccount] = useState<AccountData | null>(null)
   const [activeTab, setActiveTab] = useState<'home' | 'transfer' | 'cards' | 'statements' | 'settings'>('home')
   const [showBalance, setShowBalance] = useState(true)
@@ -201,11 +201,56 @@ export default function BankDashboard() {
   }, [loadAccount])
 
   const handleTransfer = async () => {
-    if (!transferForm.amount || !transferForm.recipient || !account) return
+    if (!transferForm.amount || (!transferForm.recipient && !transferToSelf) || !account) return
     const amount = parseFloat(transferForm.amount)
     if (amount > account.balance) return
 
-    const success = await supabaseUpdateBalance(account.id, account.balance - amount)
+    let success = false
+    let txnRecord = null
+
+    if (transferToSelf && targetAccountId && targetAccountId !== account.id) {
+      // Transfer to another of user's accounts
+      const fromBalance = account.balance - amount
+      const targetAcc = otherAccounts.find(a => a.id === targetAccountId)
+      if (targetAcc) {
+        const toBalance = targetAcc.balance + amount
+        // Update both accounts
+        const [fromOk, toOk] = await Promise.all([
+          supabaseUpdateBalance(account.id, fromBalance),
+          supabaseUpdateBalance(targetAccountId, toBalance),
+        ])
+        success = fromOk && toOk
+        txnRecord = {
+          id: 'txn_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+          type: 'debit' as const,
+          amount: amount,
+          description: `Transfer to ${targetAcc.templateName}`,
+          date: new Date().toISOString().split('T')[0],
+          status: 'completed' as const,
+          counterparty: targetAcc.accountHolder,
+        }
+      }
+    } else {
+      // Regular external transfer
+      const success = await supabaseUpdateBalance(account.id, account.balance - amount)
+      if (success) {
+        txnRecord = {
+          id: 'txn_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+          type: 'debit' as const,
+          amount: amount,
+          description: transferForm.recipient || 'Payment',
+          date: new Date().toISOString().split('T')[0],
+          status: 'completed' as const,
+          counterparty: transferForm.recipient || 'Unknown',
+        }
+      }
+    }
+
+    // Save transaction to Supabase if we have userId
+    if (success && txnRecord && userId) {
+      await supabaseCreateTransaction(account.id, txnRecord)
+    }
+
     if (success) {
       setAccount(prev => prev ? { ...prev, balance: prev.balance - amount } : null)
       setTransferSuccess(true)
@@ -230,6 +275,53 @@ export default function BankDashboard() {
   const handleLogout = async () => {
     await signOut()
     navigate('/')
+  }
+
+  // TRANSFER TO SELF
+  const [transferToSelf, setTransferToSelf] = useState(false)
+  const [targetAccountId, setTargetAccountId] = useState('')
+  const [otherAccounts, setOtherAccounts] = useState<any[]>([])
+  const [selectedTxn, setSelectedTxn] = useState<any>(null)
+  const [showTxnDetails, setShowTxnDetails] = useState(false)
+
+  // Load user's other accounts for transfer-to-self
+  useEffect(() => {
+    const load = async () => {
+      if (!userId || !account) {
+        setOtherAccounts([])
+        return
+      }
+      try {
+        const all = await supabaseGetAccounts(userId)
+        const filtered = all.filter((a: any) => a.id !== account.id && a.status === 'active')
+        setOtherAccounts(filtered)
+      } catch {
+        setOtherAccounts([])
+      }
+    }
+    load()
+  }, [userId, account])
+
+  // EXPORT TRANSACTIONS AS CSV
+  const exportCsv = () => {
+    if (!filteredTxns || filteredTxns.length === 0) return
+    const headers = ['Date', 'Type', 'Amount', 'Description', 'Counterparty', 'Status']
+    const rows = filteredTxns.map((t: any) => [
+      t.date || '',
+      t.type || '',
+      (t.type === 'credit' ? '+' : '-') + (t.amount || '0'),
+      (t.description || '').replace(/"/g, '""'),
+      (t.counterparty || '').replace(/"/g, '""'),
+      t.status || '',
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `transactions-${account?.templateName || 'account'}-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   if (loading) {
@@ -646,6 +738,11 @@ export default function BankDashboard() {
       transferForm={transferForm}
       setTransferForm={setTransferForm}
       transferSuccess={transferSuccess}
+      transferToSelf={transferToSelf}
+      setTransferToSelf={setTransferToSelf}
+      targetAccountId={targetAccountId}
+      setTargetAccountId={setTargetAccountId}
+      otherAccounts={otherAccounts}
       cardFrozen={cardFrozen}
       setCardFrozen={setCardFrozen}
       cardPin={cardPin}
@@ -664,6 +761,11 @@ export default function BankDashboard() {
       accountType={accountType}
       setAccountType={setAccountType}
       onLogout={handleLogout}
+      selectedTxn={selectedTxn}
+      setSelectedTxn={setSelectedTxn}
+      showTxnDetails={showTxnDetails}
+      setShowTxnDetails={setShowTxnDetails}
+      exportCsv={exportCsv}
     />
   )
 }
