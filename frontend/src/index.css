@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 255 255 255;
+    --foreground: 17 24 39;
+    --card: 255 255 255;
+    --card-foreground: 17 24 39;
+    --primary: 37 99 235;
+    --primary-foreground: 255 255 255;
+    --secondary: 249 250 251;
+    --secondary-foreground: 17 24 39;
+    --muted: 249 250 251;
+    --muted-foreground: 115 128 149;
+    --border: 226 232 240;
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-[var(--border)];
+  }
+
+  body {
+    @apply bg-[var(--background)] text-[var(--foreground)] font-sans antialiased;
+  }
+}
+
+@layer components {
+  .bank-card {
+    @apply rounded-xl shadow-lg border border-transparent;
+  }
+
+  .bank-input {
+    @apply w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm
+           focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500
+           placeholder:text-gray-400 transition-all duration-200;
+  }
+
+  .bank-btn {
+    @apply px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200;
+  }
+
+  .bank-btn-primary {
+    @apply bank-btn bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98];
+  }
+
+  .bank-btn-secondary {
+    @apply bank-btn bg-white text-gray-700 border border-gray-200 hover:bg-gray-50;
+  }
+
+  .bank-btn-danger {
+    @apply bank-btn bg-red-500 text-white hover:bg-red-600 active:scale-[0.98];
+  }
+}
