@@ -2,11 +2,8 @@ import { useState, useMemo } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Plus, Minus, Eye, EyeOff, Check, AlertCircle } from 'lucide-react'
 import { BANK_TEMPLATES, getTemplate, type BankTemplate } from '../lib/bankTemplates'
-import { useAuth } from '../contexts/AuthContext'
-import { createAccount as createAccountOnSupabase } from '../lib/supabase-api'
 
 export default function AccountCreate() {
-  const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const templateId = searchParams.get('template')
@@ -56,56 +53,43 @@ export default function AccountCreate() {
     }
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!holderName || !balance) return
-    if (!user) {
-      navigate('/login')
-      return
-    }
     setSubmitting(true)
     setError('')
-    try {
-      const account = await createAccountOnSupabase(user.id, {
-        ...template,
-        primaryColor: customColors.primary,
-        secondaryColor: customColors.secondary,
-      }, customName || holderName || template.name)
 
-      if (account) {
-        // Save current account to localStorage for quick access
-        const currentAcc = {
-          id: account.id,
-          templateId: account.template_id,
-          templateName: account.template_name,
-          accountHolder: account.account_holder,
-          balance: account.balance,
-          currency: account.currency,
-          symbol: account.symbol,
-          primaryColor: account.primary_color,
-          secondaryColor: account.secondary_color,
-          logoUrl: '',
-          country: account.country,
-          countryCode: account.country_code,
-          layout: template.layout,
-          features: template.features,
-          createdAt: account.created_at,
-          status: 'active' as const,
-        }
-        localStorage.setItem('multiBank_currentAccount', JSON.stringify(currentAcc))
-        setSubmitted(true)
-      } else {
-        setError('Failed to create account. Please try again.')
-      }
-    } catch (err: any) {
-      console.error('Error creating account:', err)
-      setError(err.message || 'Failed to create account')
-    } finally {
-      setSubmitting(false)
+    // Save account to localStorage
+    const newAcc = {
+      id: 'acc_' + Math.random().toString(36).substr(2, 9),
+      templateId: template.id,
+      templateName: customName || template.name,
+      accountHolder: customName || holderName || template.name,
+      balance: parseInt(balance),
+      currency: template.currency,
+      symbol: template.symbol,
+      primaryColor: customColors.primary,
+      secondaryColor: customColors.secondary,
+      logoUrl: '',
+      country: template.country,
+      countryCode: template.countryCode,
+      layout: template.layout,
+      features: template.features,
+      tagline: template.tagline,
+      createdAt: new Date().toISOString(),
+      status: 'active' as const,
     }
+
+    // Get existing accounts and add new one
+    const existing = JSON.parse(localStorage.getItem('multiBank_accounts') || '[]')
+    const allAccounts = [...existing, newAcc]
+    localStorage.setItem('multiBank_accounts', JSON.stringify(allAccounts))
+
+    setSubmitted(true)
+    setSubmitting(false)
   }
 
   if (submitted) {
-    const account = JSON.parse(localStorage.getItem('multiBank_currentAccount') || '{}')
+    const currentAcc = JSON.parse(localStorage.getItem('multiBank_currentAccount') || '{}')
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto">
@@ -129,7 +113,7 @@ export default function AccountCreate() {
                 </span>
               </div>
               <div className="text-left">
-                <div className="font-bold text-gray-900">{account.templateName || template.name}</div>
+                <div className="font-bold text-gray-900">{currentAcc.templateName || template.name}</div>
                 <div className="text-xs text-gray-400">{holderName}</div>
               </div>
             </div>
@@ -144,7 +128,7 @@ export default function AccountCreate() {
             <Link to="/templates" className="flex-1 bg-gray-100 text-gray-700 font-medium py-2.5 rounded-lg hover:bg-gray-200 transition text-center">
               Browse More
             </Link>
-            <Link to={`/dashboard/${account.id}`} className="flex-1 bg-blue-600 text-white font-medium py-2.5 rounded-lg hover:bg-blue-700 transition text-center">
+            <Link to={`/dashboard/${currentAcc.id}`} className="flex-1 bg-blue-600 text-white font-medium py-2.5 rounded-lg hover:bg-blue-700 transition text-center">
               Open Dashboard →
             </Link>
           </div>

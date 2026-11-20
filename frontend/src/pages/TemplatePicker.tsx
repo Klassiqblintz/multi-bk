@@ -1,7 +1,7 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, LayoutGrid, Search, ChevronRight } from 'lucide-react'
 import { BANK_TEMPLATES, getCountries } from '../lib/bankTemplates'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
 const COUNTRIES = getCountries()
@@ -12,30 +12,10 @@ const COUNTRY_ICONS: Record<string, string> = {
 }
 
 export default function TemplatePicker() {
-  const { user, loading: authLoading } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login')
-    }
-  }, [user, authLoading, navigate])
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin">
-          <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.336 4A9.968 9.968 0 0012 2c-4.97 0-9.969 4.03-9.969 9.998 0 4.97 4.03 9.999 9.999 10 4.97 0 9.999-4.03 9.999-9.999" />
-          </svg>
-        </div>
-      </div>
-    )
-  }
-
-  if (!user) return null
 
   const filtered = BANK_TEMPLATES.filter(t => {
     const matchSearch = !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.country.toLowerCase().includes(search.toLowerCase())

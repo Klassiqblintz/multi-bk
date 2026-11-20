@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import {
   Users,
   Building2,
@@ -16,8 +15,12 @@ import {
   Download,
   Filter,
   MoreHorizontal,
+  Lock,
+  LogOut,
 } from 'lucide-react'
-import { getAccounts, updateAccountBalance, deleteAccount, BankAccount } from '../lib/supabase-api'
+
+const ADMIN_PASSWORD = '0425'
+const ADMIN_SESSION_KEY = 'multiBank_adminSession'
 
 const COUNTRY_ICONS: Record<string, string> = {
   'DE': '🇩🇪', 'AU': '🇦🇺', 'US': '🇺🇸',
@@ -25,41 +28,97 @@ const COUNTRY_ICONS: Record<string, string> = {
   'JP': '🇯🇵',
 }
 
+interface AccountData {
+  id: string
+  templateId: string
+  templateName: string
+  accountHolder: string
+  balance: number
+  currency: string
+  symbol: string
+  primaryColor: string
+  secondaryColor: string
+  logoUrl: string
+  country: string
+  countryCode: string
+  layout: string
+  features: string[]
+  tagline: string
+  createdAt: string
+  status: string
+}
+
+function getAccounts(): AccountData[] {
+  try {
+    const stored = localStorage.getItem('multiBank_accounts')
+    if (stored) return JSON.parse(stored)
+    return []
+  } catch {
+    return []
+  }
+}
+
+function saveAccounts(accounts: AccountData[]) {
+  localStorage.setItem('multiBank_accounts', JSON.stringify(accounts))
+}
+
+function isAdminLoggedIn(): boolean {
+  const session = localStorage.getItem(ADMIN_SESSION_KEY)
+  return session === 'true'
+}
+
+function setAdminLoggedIn(loggedIn: boolean) {
+  localStorage.setItem(ADMIN_SESSION_KEY, loggedIn ? 'true' : 'false')
+}
+
 export default function AdminPanel() {
-  const { user } = useAuth()
   const navigate = useNavigate()
-  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [password, setPassword] = useState('')
+  const [loginError, setLoginError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [accounts, setAccounts] = useState<AccountData[]>([])
   const [search, setSearch] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null)
   const [addAmount, setAddAmount] = useState('')
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
-  const loadAccounts = useCallback(async () => {
-    if (!user) return
-    try {
-      const data = await getAccounts(user.id)
-      setAccounts(data)
-    } catch (err) {
-      console.error('Failed to load accounts:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [user])
-
   useEffect(() => {
-    if (!user) {
-      navigate('/login')
-      return
+    if (isAdminLoggedIn()) {
+      setIsAuthenticated(true)
     }
-    loadAccounts()
-  }, [user, loadAccounts, navigate])
+    setLoading(false)
+  }, [])
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoginError('')
+    if (password === ADMIN_PASSWORD) {
+      setAdminLoggedIn(true)
+      setIsAuthenticated(true)
+      setPassword('')
+    } else {
+      setLoginError('Incorrect password')
+    }
+  }
+
+  const handleLogout = () => {
+    setAdminLoggedIn(false)
+    setIsAuthenticated(false)
+    setAccounts([])
+    navigate('/')
+  }
+
+  const loadAccounts = useCallback(() => {
+    const data = getAccounts()
+    setAccounts(data)
+  }, [])
 
   const filtered = accounts.filter(acc =>
     !search ||
-    (acc.template_name || '').toLowerCase().includes(search.toLowerCase()) ||
-    (acc.account_holder || '').toLowerCase().includes(search.toLowerCase())
+    (acc.templateName || '').toLowerCase().includes(search.toLowerCase()) ||
+    (acc.accountHolder || '').toLowerCase().includes(search.toLowerCase())
   )
 
   const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0)
@@ -69,7 +128,15 @@ export default function AdminPanel() {
     const amount = parseFloat(addAmount)
     if (!amount || amount <= 0) return
     if (!selectedAccount) return
-    updateAccountBalance(selectedAccount, 0) // placeholder
+
+    const updated = accounts.map(acc => {
+      if (acc.id === selectedAccount) {
+        return { ...acc, balance: acc.balance + amount }
+      }
+      return acc
+    })
+    saveAccounts(updated)
+    setAccounts(updated)
     setToast({ message: `Successfully added ${addAmount} to account`, type: 'success' })
     setTimeout(() => {
       setToast(null)
@@ -78,10 +145,39 @@ export default function AdminPanel() {
     }, 2000)
   }
 
-  const handleDelete = async (accountId: string) => {
+  const handleDelete = (accountId: string) => {
     if (!window.confirm('Delete this account?')) return
-    await deleteAccount(accountId)
-    await loadAccounts()
+    const updated = accounts.filter(acc => acc.id !== accountId)
+    saveAccounts(updated)
+    setAccounts(updated)
+  }
+
+  const handleCreateAccount = () => {
+    const newAcc: AccountData = {
+      id: 'acc_' + Math.random().toString(36).substr(2, 9),
+      templateId: 'chase',
+      templateName: 'Chase',
+      accountHolder: 'John Doe',
+      balance: 50000,
+      currency: 'USD',
+      symbol: '$',
+      primaryColor: '#2563EB',
+      secondaryColor: '#1D4ED8',
+      logoUrl: '',
+      country: 'USA',
+      countryCode: 'US',
+      layout: 'modern',
+      features: ['dashboard', 'transactions', 'cards', 'statements', 'settings'],
+      tagline: 'Banking made simple.',
+      createdAt: new Date().toISOString(),
+      status: 'active',
+    }
+    const updated = [...accounts, newAcc]
+    saveAccounts(updated)
+    setAccounts(updated)
+    setShowAddModal(false)
+    setToast({ message: 'Account created successfully', type: 'success' })
+    setTimeout(() => setToast(null), 2000)
   }
 
   if (loading) {
@@ -92,6 +188,79 @@ export default function AdminPanel() {
     )
   }
 
+  // NOT AUTHENTICATED - SHOW LOGIN FORM
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex">
+        {/* Left - Branding */}
+        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-gray-800 to-black flex-col justify-between p-12 text-white">
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                <Building2 className="w-6 h-6" />
+              </div>
+              <span className="text-xl font-bold">MultiBank</span>
+            </div>
+            <h1 className="text-3xl font-bold mb-3">Admin Panel</h1>
+            <p className="text-lg opacity-70">Manage all fake bank accounts</p>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 opacity-60">
+              <Lock className="w-4 h-4" />
+              <span className="text-sm">Password protected</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right - Login */}
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="w-full max-w-md">
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <div className="text-center mb-6">
+                <div className="w-14 h-14 bg-gray-800 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <Lock className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-xl font-bold text-gray-900">Admin Access</h1>
+                <p className="text-sm text-gray-400 mt-1">Enter password to continue</p>
+              </div>
+
+              {loginError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-500" />
+                  <span className="text-sm text-red-600">{loginError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      placeholder="Enter admin password"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-gray-800 text-white font-medium py-2.5 rounded-lg hover:bg-gray-900 transition-all text-base"
+                >
+                  Sign In
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // AUTHENTICATED - SHOW PANEL
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -111,12 +280,20 @@ export default function AdminPanel() {
             <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
             <p className="text-sm text-gray-500 mt-1">Manage all bank accounts</p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-          >
-            <Plus className="w-3.5 h-3.5" /> Create Account
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+            >
+              <Plus className="w-3.5 h-3.5" /> Create Account
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200"
+            >
+              <LogOut className="w-3.5 h-3.5" /> Logout
+            </button>
+          </div>
         </div>
 
         {/* STATS */}
@@ -180,16 +357,16 @@ export default function AdminPanel() {
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 bg-gray-100 rounded-md flex items-center justify-center text-sm">
-                            {COUNTRY_ICONS[acc.country_code] || '🏦'}
+                            {COUNTRY_ICONS[acc.countryCode] || '🏦'}
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-gray-900">{acc.template_name}</div>
+                            <div className="text-sm font-medium text-gray-900">{acc.templateName}</div>
                             <div className="text-xs text-gray-400 font-mono">{acc.id.slice(0, 8)}...</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-2.5">
-                        <div className="text-sm text-gray-900">{acc.account_holder}</div>
+                        <div className="text-sm text-gray-900">{acc.accountHolder}</div>
                         <div className="text-xs text-gray-400">{acc.currency} ({acc.symbol})</div>
                       </td>
                       <td className="px-4 py-2.5">
@@ -206,7 +383,7 @@ export default function AdminPanel() {
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="text-xs text-gray-400">
-                          {acc.created_at ? new Date(acc.created_at).toLocaleDateString() : '-'}
+                          {acc.createdAt ? new Date(acc.createdAt).toLocaleDateString() : '-'}
                         </div>
                       </td>
                       <td className="px-4 py-2.5">
@@ -277,7 +454,7 @@ export default function AdminPanel() {
                     <option value="">Select an account...</option>
                     {accounts.map(acc => (
                       <option key={acc.id} value={acc.id}>
-                        {acc.template_name} - {acc.account_holder}
+                        {acc.templateName} - {acc.accountHolder}
                       </option>
                     ))}
                   </select>
@@ -316,6 +493,20 @@ export default function AdminPanel() {
                     <Plus className="w-4 h-4" /> Add Funds
                   </div>
                 </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowAddModal(false)}
+                    className="flex-1 bg-gray-100 text-gray-700 font-medium py-2.5 rounded-lg hover:bg-gray-200 transition text-center"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateAccount}
+                    className="flex-1 bg-green-600 text-white font-medium py-2.5 rounded-lg hover:bg-green-700 transition text-center"
+                  >
+                    Create Account
+                  </button>
+                </div>
               </div>
             </div>
           </div>

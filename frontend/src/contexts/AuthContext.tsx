@@ -1,66 +1,91 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { supabase, onAuthStateChange } from '../lib/supabase'
+import {
+  signUp as localSignUp,
+  signIn as localSignIn,
+  generateOtp,
+  verifyOtp,
+  resetPassword,
+  getSession,
+  setSession,
+  clearSession,
+  isLoggedIn,
+} from '../lib/local-auth'
 
 interface AuthContextType {
-  user: any
-  session: any
+  user: string | null
+  email: string | null
+  fullName: string | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, fullName: string) => Promise<any>
-  signOut: () => Promise<void>
+  signUp: (email: string, password: string, fullName: string) => Promise<void>
+  signOut: () => void
+  forgotPassword: (email: string) => string
+  verifyPasswordReset: (email: string, code: string, newPassword: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<any>(null)
-  const [session, setSession] = useState<any>(null)
+  const [email, setEmail] = useState<string | null>(null)
+  const [fullName, setFullName] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
+    const session = getSession()
+    if (session) {
+      setEmail(session.email)
+      setFullName(session.fullName)
     }
-    init()
-
-    // Listen for auth changes
-    const { data: { subscription } } = onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
+    setLoading(false)
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
-    setSession(data.session)
-    setUser(data.user)
+    const user = localSignIn(email, password)
+    if (!user) {
+      throw new Error('Invalid email or password')
+    }
+    setSession(user.email, user.fullName)
+    setEmail(user.email)
+    setFullName(user.fullName)
   }
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } }
-    })
-    if (error) throw error
-    return data
+    const result = localSignUp(email, password, fullName)
+    setSession(result.user.email, result.user.fullName)
+    setEmail(result.user.email)
+    setFullName(result.user.fullName)
   }
 
-  const signOut = async () => {
-    await supabase.auth.signOut()
-    setSession(null)
-    setUser(null)
+  const signOut = () => {
+    clearSession()
+    setEmail(null)
+    setFullName(null)
+  }
+
+  const forgotPassword = (email: string): string => {
+    const code = generateOtp(email)
+    return code
+  }
+
+  const verifyPasswordReset = async (email: string, code: string, newPassword: string) => {
+    if (!verifyOtp(email, code)) {
+      throw new Error('Invalid or expired code')
+    }
+    resetPassword(email, newPassword)
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{
+      user: email,
+      email,
+      fullName,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+      forgotPassword,
+      verifyPasswordReset,
+    }}>
       {children}
     </AuthContext.Provider>
   )
