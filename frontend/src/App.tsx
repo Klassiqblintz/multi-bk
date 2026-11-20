@@ -14,11 +14,9 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Landing page renders full-screen at root only */}
-          <Route path="/" element={<LandingPage />} />
-
-          {/* Everything else goes through MainLayout (with conditional sidebar) */}
-          <Route path="/*" element={<MainLayout />}>
+          {/* Everything goes through MainLayout (with conditional sidebar) */}
+          <Route element={<MainLayout />}>
+            <Route index element={<LandingPage />} />
             <Route path="templates" element={<TemplatePicker />} />
             <Route path="accounts" element={<MyAccounts />} />
             <Route path="create" element={<AccountCreate />} />
