@@ -1,7 +1,8 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, LayoutGrid, Search, ChevronRight } from 'lucide-react'
 import { BANK_TEMPLATES, getCountries } from '../lib/bankTemplates'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 const COUNTRIES = getCountries()
 const COUNTRY_ICONS: Record<string, string> = {
@@ -11,8 +12,30 @@ const COUNTRY_ICONS: Record<string, string> = {
 }
 
 export default function TemplatePicker() {
+  const { user, loading: authLoading } = useAuth()
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login')
+    }
+  }, [user, authLoading, navigate])
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin">
+          <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.336 4A9.968 9.968 0 0012 2c-4.97 0-9.969 4.03-9.969 9.998 0 4.97 4.03 9.999 9.999 10 4.97 0 9.999-4.03 9.999-9.999" />
+          </svg>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) return null
 
   const filtered = BANK_TEMPLATES.filter(t => {
     const matchSearch = !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.country.toLowerCase().includes(search.toLowerCase())
@@ -25,11 +48,11 @@ export default function TemplatePicker() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* HEADER */}
         <div className="mb-6">
-          <Link to="/" className="text-gray-400 hover:text-gray-600 inline-flex items-center gap-1.5 text-sm mb-4">
+          <a href="/" className="text-gray-400 hover:text-gray-600 inline-flex items-center gap-1.5 text-sm mb-4">
             <ArrowLeft className="w-4 h-4" /> Back to Home
-          </Link>
+          </a>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Browse Bank Templates</h1>
-          <p className="text-sm text-gray-500">All templates are also available in the sidebar. Use the search below to find exactly what you need.</p>
+          <p className="text-sm text-gray-500">Choose a bank template to create your account</p>
         </div>
 
         {/* SEARCH & FILTERS */}
@@ -73,9 +96,9 @@ export default function TemplatePicker() {
         {/* TEMPLATE GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map(template => (
-            <Link
+            <a
               key={template.id}
-              to={`/create?template=${template.id}`}
+              href={`/create?template=${template.id}`}
               className="group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg hover:shadow-gray-200/50 transition-all duration-300"
             >
               <div
@@ -102,7 +125,7 @@ export default function TemplatePicker() {
                   Create Account <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
                 </div>
               </div>
-            </Link>
+            </a>
           ))}
         </div>
 
@@ -113,14 +136,6 @@ export default function TemplatePicker() {
             <p className="text-sm text-gray-500">Try a different search term or country filter</p>
           </div>
         )}
-
-        <div className="mt-8 bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center gap-3">
-          <LayoutGrid className="w-5 h-5 text-blue-500 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-blue-800">Pro tip</p>
-            <p className="text-xs text-blue-600 mt-1">All templates are also available in the sidebar on the left. You can browse and select templates directly from there.</p>
-          </div>
-        </div>
       </div>
     </div>
   )

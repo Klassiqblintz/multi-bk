@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import {
   Building2,
   Globe,
@@ -11,6 +12,8 @@ import {
   Smartphone,
   Lock,
   PieChart,
+  LogIn,
+  UserPlus,
 } from 'lucide-react'
 
 const FEATURES = [
@@ -23,9 +26,37 @@ const FEATURES = [
 ]
 
 export default function LandingPage() {
+  const { user, signIn, signUp } = useAuth()
+
   return (
     <div className="min-h-screen bg-white">
-      {/* HERO */}
+      {/* NAV BAR */}
+      <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-lg font-bold text-gray-900">MultiBank</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            {!user ? (
+              <>
+                <a href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 flex items-center gap-1.5 px-3 py-1.5">
+                  <LogIn className="w-3.5 h-3.5" /> Sign In
+                </a>
+                <a href="/login#register" className="text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                  <UserPlus className="w-3.5 h-3.5" /> Register
+                </a>
+              </>
+            ) : (
+              <Link to="/templates" className="text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg">
+                Get Started →
+              </Link>
+            )}
+          </div>
+        </div>
+      </nav>
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-50" />
         <div className="absolute inset-0 opacity-30">

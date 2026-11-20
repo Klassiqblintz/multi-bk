@@ -2,8 +2,11 @@ import { useState, useMemo } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Plus, Minus, Eye, EyeOff, Check, AlertCircle } from 'lucide-react'
 import { BANK_TEMPLATES, getTemplate, type BankTemplate } from '../lib/bankTemplates'
+import { useAuth } from '../contexts/AuthContext'
+import { createAccount as createAccountOnSupabase } from '../lib/supabase-api'
 
 export default function AccountCreate() {
+  const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const templateId = searchParams.get('template')
@@ -19,6 +22,7 @@ export default function AccountCreate() {
   const [customName, setCustomName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
 
   if (!template) {
     return (
@@ -27,8 +31,8 @@ export default function AccountCreate() {
           <div className="text-5xl mb-3">🏦</div>
           <h2 className="text-xl font-bold text-gray-900 mb-1">No template selected</h2>
           <p className="text-sm text-gray-500 mb-4">Choose a template first</p>
-          <Link to="/templates" className="bank-btn-primary inline-flex items-center gap-1.5">
-            Browse Templates <ArrowLeft className="w-4 h-4 rotate-180" />
+          <Link to="/templates" className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Browse Templates
           </Link>
         </div>
       </div>
@@ -48,37 +52,56 @@ export default function AccountCreate() {
 
   const handleChangeColor = (field: 'primary' | 'secondary', val: string) => {
     if (val.startsWith('#') && val.length === 7) {
-      setCustomColors(prev => ({ ...prev, [field]: val }))
+      setCustomColors(prev => ({ ...prev, [field]: val }) as any)
     }
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!holderName || !balance) return
+    if (!user) {
+      navigate('/login')
+      return
+    }
     setSubmitting(true)
-    setTimeout(() => {
-      const accountId = 'acc_' + Math.random().toString(36).substr(2, 9)
-      const account = {
-        id: accountId,
-        templateId: template.id,
-        templateName: customName || template.name,
-        accountHolder: holderName,
-        balance: parseInt(balance),
-        currency: template.currency,
-        symbol: template.symbol,
+    setError('')
+    try {
+      const account = await createAccountOnSupabase(user.id, {
+        ...template,
         primaryColor: customColors.primary,
         secondaryColor: customColors.secondary,
-        logoUrl: template.logoUrl,
-        country: template.country,
-        countryCode: template.countryCode,
-        layout: template.layout,
-        features: template.features,
-        createdAt: new Date().toISOString(),
-        status: 'active' as const,
+      }, customName || holderName || template.name)
+
+      if (account) {
+        // Save current account to localStorage for quick access
+        const currentAcc = {
+          id: account.id,
+          templateId: account.template_id,
+          templateName: account.template_name,
+          accountHolder: account.account_holder,
+          balance: account.balance,
+          currency: account.currency,
+          symbol: account.symbol,
+          primaryColor: account.primary_color,
+          secondaryColor: account.secondary_color,
+          logoUrl: '',
+          country: account.country,
+          countryCode: account.country_code,
+          layout: template.layout,
+          features: template.features,
+          createdAt: account.created_at,
+          status: 'active' as const,
+        }
+        localStorage.setItem('multiBank_currentAccount', JSON.stringify(currentAcc))
+        setSubmitted(true)
+      } else {
+        setError('Failed to create account. Please try again.')
       }
-      localStorage.setItem('multiBank_currentAccount', JSON.stringify(account))
+    } catch (err: any) {
+      console.error('Error creating account:', err)
+      setError(err.message || 'Failed to create account')
+    } finally {
       setSubmitting(false)
-      setSubmitted(true)
-    }, 1500)
+    }
   }
 
   if (submitted) {
@@ -94,7 +117,16 @@ export default function AccountCreate() {
           <div className="bg-white rounded-xl border border-gray-100 p-4 mb-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span className="text-xl">{template.countryCode === 'DE' ? '🇩🇪' : template.countryCode === 'AU' ? '🇦🇺' : template.countryCode === 'US' ? '🇺🇸' : template.countryCode === 'FR' ? '🇫🇷' : template.countryCode === 'IT' ? '🇮🇹' : template.countryCode === 'GB' ? '🇬🇧' : template.countryCode === 'CA' ? '🇨🇦' : '🏦'}</span>
+                <span className="text-xl">
+                  {template.countryCode === 'DE' ? '🇩🇪' :
+                   template.countryCode === 'AU' ? '🇦🇺' :
+                   template.countryCode === 'US' ? '🇺🇸' :
+                   template.countryCode === 'FR' ? '🇫🇷' :
+                   template.countryCode === 'IT' ? '🇮🇹' :
+                   template.countryCode === 'GB' ? '🇬🇧' :
+                   template.countryCode === 'CA' ? '🇨🇦' :
+                   template.countryCode === 'JP' ? '🇯🇵' : '🏦'}
+                </span>
               </div>
               <div className="text-left">
                 <div className="font-bold text-gray-900">{account.templateName || template.name}</div>
@@ -109,10 +141,10 @@ export default function AccountCreate() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Link to="/templates" className="flex-1 bank-btn-secondary text-center">
+            <Link to="/templates" className="flex-1 bg-gray-100 text-gray-700 font-medium py-2.5 rounded-lg hover:bg-gray-200 transition text-center">
               Browse More
             </Link>
-            <Link to={`/dashboard/${account.id}`} className="flex-1 bank-btn-primary text-center">
+            <Link to={`/dashboard/${account.id}`} className="flex-1 bg-blue-600 text-white font-medium py-2.5 rounded-lg hover:bg-blue-700 transition text-center">
               Open Dashboard →
             </Link>
           </div>
@@ -138,8 +170,15 @@ export default function AccountCreate() {
         </div>
       </header>
 
-      {/* PREVIEW */}
+      {/* MAIN */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500" />
+            <span className="text-sm text-red-600">{error}</span>
+          </div>
+        )}
+
         <div className="grid lg:grid-cols-2 gap-8">
           {/* FORM */}
           <div className="space-y-6">
@@ -171,7 +210,7 @@ export default function AccountCreate() {
                     value={customName || ''}
                     onChange={e => setCustomName(e.target.value)}
                     placeholder={template.name}
-                    className="bank-input"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
                 <div>
@@ -181,7 +220,7 @@ export default function AccountCreate() {
                     value={holderName}
                     onChange={e => setHolderName(e.target.value)}
                     placeholder="Your full name"
-                    className="bank-input"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                     required
                   />
                 </div>
@@ -200,15 +239,15 @@ export default function AccountCreate() {
                       type="text"
                       value={showBalance ? balance : '•'.repeat(Math.max(balance.length, 3))}
                       onChange={e => handleBalanceChange(e.target.value)}
-                      className="bank-input flex-1"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                       placeholder="50000"
                       required
                     />
-                    <button onClick={() => setShowBalance(!showBalance)} className="text-gray-400 hover:text-gray-600">
+                    <button onClick={() => setShowBalance(!showBalance)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded">
                       {showBalance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  <div className="flex gap-1 mt-2">
+                  <div className="flex gap-1 mt-2 flex-wrap">
                     {[1000, 5000, 10000, 50000, 100000, 500000].map(amount => (
                       <button
                         key={amount}
@@ -258,7 +297,8 @@ export default function AccountCreate() {
             <button
               onClick={handleSubmit}
               disabled={!holderName || !balance || submitting}
-              className="w-full bank-btn-primary text-base py-3 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 text-base text-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+              style={{ backgroundColor: template.primaryColor }}
             >
               {submitting ? (
                 <>
