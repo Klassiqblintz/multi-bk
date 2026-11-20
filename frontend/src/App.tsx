@@ -14,17 +14,18 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Landing page renders full-screen, no sidebar */}
+          {/* Landing page renders full-screen at root only */}
           <Route path="/" element={<LandingPage />} />
 
-          {/* All other routes use the sidebar layout */}
-          <Route element={<MainLayout />}>
-            <Route path="/templates" element={<TemplatePicker />} />
-            <Route path="/accounts" element={<MyAccounts />} />
-            <Route path="/create" element={<AccountCreate />} />
-            <Route path="/dashboard/:accountId" element={<BankDashboard />} />
-            <Route path="/admin" element={<AdminPanel />} />
+          {/* Everything else goes through MainLayout (with conditional sidebar) */}
+          <Route path="/*" element={<MainLayout />}>
+            <Route path="templates" element={<TemplatePicker />} />
+            <Route path="accounts" element={<MyAccounts />} />
+            <Route path="create" element={<AccountCreate />} />
+            <Route path="dashboard/:accountId" element={<BankDashboard />} />
+            <Route path="admin" element={<AdminPanel />} />
           </Route>
+
           <Route path="/login" element={<BankLogin />} />
         </Routes>
       </BrowserRouter>
