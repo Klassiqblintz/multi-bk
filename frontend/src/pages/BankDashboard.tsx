@@ -103,7 +103,7 @@ function generateFakeTransactions(balance: number, symbol: string): any[] {
     const date = new Date(now.getTime() - i * 86400000 * (1 + Math.random() * 3))
     const isCredit = Math.random() > 0.75
     txns.push({
-      id: 'txn_' + Math.random().toString(36).substr(2, 9),
+      id: 'txn_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
       type: isCredit ? 'credit' : 'debit',
       amount: isCredit
         ? (Math.random() * 5000 + 100).toFixed(2)

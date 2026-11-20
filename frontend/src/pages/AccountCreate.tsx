@@ -60,7 +60,7 @@ export default function AccountCreate() {
 
     // Save account to localStorage
     const newAcc = {
-      id: 'acc_' + Math.random().toString(36).substr(2, 9),
+      id: 'acc_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
       templateId: template.id,
       templateName: customName || template.name,
       accountHolder: customName || holderName || template.name,
@@ -97,7 +97,7 @@ export default function AccountCreate() {
 
     // Save account to localStorage
     const newAcc = {
-      id: 'acc_' + Math.random().toString(36).substr(2, 9),
+      id: 'acc_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
       templateId: template.id,
       templateName: customName || template.name,
       accountHolder: customName || holderName || template.name,

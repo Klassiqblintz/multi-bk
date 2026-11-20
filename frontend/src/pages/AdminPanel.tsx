@@ -154,7 +154,7 @@ export default function AdminPanel() {
 
   const handleCreateAccount = () => {
     const newAcc: AccountData = {
-      id: 'acc_' + Math.random().toString(36).substr(2, 9),
+      id: 'acc_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
       templateId: 'chase',
       templateName: 'Chase',
       accountHolder: 'John Doe',
