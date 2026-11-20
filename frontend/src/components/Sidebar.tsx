@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home,
@@ -12,13 +12,18 @@ import {
   LogOut,
   User,
   Menu,
+  ArrowRightLeft,
+  CreditCard,
+  FileText,
+  Settings,
+  Home as HomeIcon,
+  User as UserIcon,
 } from 'lucide-react'
-import { BANK_TEMPLATES, getCountries, type BankTemplate } from '../lib/bankTemplates'
+import { BANK_TEMPLATES, getCountries, getTemplate, type BankTemplate } from '../lib/bankTemplates'
 
 interface SidebarProps {
   collapsed?: boolean
   onToggle?: () => void
-  onNavigate?: (path: string) => void
 }
 
 interface AccountData {
@@ -54,22 +59,22 @@ const COUNTRY_ICONS: Record<string, string> = {
   'Japan': '🇯🇵',
 }
 
-function getAccounts(): AccountData[] {
-  const items: AccountData[] = []
-  const stored = localStorage.getItem('multiBank_currentAccount')
-  if (stored) {
-    try { items.push(JSON.parse(stored)) } catch {}
+// Dashboard sidebar items per bank template
+const DASHBOARD_SIDEBAR_ITEMS = [
+  { id: 'home', label: 'Home', icon: HomeIcon },
+  { id: 'transfers', label: 'Transfers', icon: ArrowRightLeft },
+  { id: 'cards', label: 'Cards', icon: CreditCard },
+  { id: 'statements', label: 'Statements', icon: FileText },
+  { id: 'settings', label: 'Settings', icon: Settings },
+]
+
+function getAccount(): AccountData | null {
+  try {
+    const stored = localStorage.getItem('multiBank_currentAccount')
+    return stored ? JSON.parse(stored) : null
+  } catch {
+    return null
   }
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i)
-    if (key?.startsWith('multiBank_account_') || key === 'multiBank_currentAccount') {
-      const acc = localStorage.getItem(key!)
-      if (acc && !items.find(a => a.id === JSON.parse(acc).id)) {
-        try { items.push(JSON.parse(acc)) } catch {}
-      }
-    }
-  }
-  return items
 }
 
 export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarProps) {
@@ -88,6 +93,34 @@ export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarP
   const isTemplates = location.pathname === '/templates'
   const isLanding = location.pathname === '/'
 
+  // On dashboard, extract account from URL or localStorage
+  const account = useMemo(() => {
+    if (!isDashboard) return null
+    // Try to find account by matching stored accounts
+    let acc: AccountData | null = null
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key?.startsWith('multiBank_') && key !== 'multiBank_currentAccount') {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(key) || '') as AccountData
+          if (parsed.id && location.pathname.includes(parsed.id)) {
+            acc = parsed
+            break
+          }
+        } catch {}
+      }
+    }
+    // Fallback to current account or default template
+    return acc || getAccount()
+  }, [isDashboard, location.pathname])
+
+  // On dashboard, extract active tab from URL
+  const activeTab = useMemo(() => {
+    if (!isDashboard) return 'home'
+    const hash = location.hash.replace('#', '')
+    return DASHBOARD_SIDEBAR_ITEMS.find(i => i.id === hash) ? hash : 'home'
+  }, [isDashboard, location.hash])
+
   useEffect(() => {
     setCollapsed(!!collapsedProp)
   }, [collapsedProp])
@@ -103,30 +136,193 @@ export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarP
     return () => document.removeEventListener('mousedown', handleClick)
   }, [mobileOpen])
 
+  // Close sidebar on mobile when navigating
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
+
+  const handleNav = (path: string, hash?: string) => {
+    const url = hash ? `${path}#${hash}` : path
+    navigate(url)
+    setMobileOpen(false)
+  }
+
+  // FILTERED TEMPLATES
   const filtered = BANK_TEMPLATES.filter(t => {
     const matchSearch = !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.country.toLowerCase().includes(search.toLowerCase())
     const matchCountry = !selectedCountry || t.country === selectedCountry
     return matchSearch && matchCountry
   })
 
-  const accounts = getAccounts()
+  // ACCOUNTS
+  const accounts = useMemo(() => {
+    const items: AccountData[] = []
+    const stored = localStorage.getItem('multiBank_currentAccount')
+    if (stored) {
+      try { items.push(JSON.parse(stored)) } catch {}
+    }
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key?.startsWith('multiBank_') && key !== 'multiBank_currentAccount') {
+        try {
+          const acc = JSON.parse(localStorage.getItem(key) || '') as AccountData
+          if (acc.id && !items.find(a => a.id === acc.id)) {
+            items.push(acc)
+          }
+        } catch {}
+      }
+    }
+    return items
+  }, [])
 
-  const navItems = [
-    { path: '/', label: 'Home', icon: Home },
-    { path: '/templates', label: 'Templates', icon: LayoutGrid },
-    { path: '/admin', label: 'Admin Panel', icon: BarChart3 },
-  ]
+  // ============ DASHBOARD SIDEBAR ============
+  if (isDashboard && account) {
+    const bankTemplate = getTemplate(account.templateId)
+    const sidebarItems = bankTemplate?.sidebarItems || DASHBOARD_SIDEBAR_ITEMS.map(i => i.label)
 
-  const handleNav = (path: string) => {
-    navigate(path)
-    setMobileOpen(false)
+    return (
+      <>
+        {/* Mobile overlay */}
+        {mobileOpen && (
+          <div
+            className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
+
+        {/* Mobile hamburger */}
+        {!collapsed && (
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="lg:hidden fixed top-4 left-4 z-30 w-9 h-9 flex items-center justify-center rounded shadow-lg"
+            style={{ backgroundColor: account.primaryColor, color: 'white' }}
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* DASHBOARD SIDEBAR */}
+        <aside
+          ref={sidebarRef}
+          className={`fixed top-0 left-0 h-full z-50 transition-all duration-300 flex flex-col ${
+            mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          } ${collapsed ? 'w-[56px]' : 'w-64 lg:w-72'}'}`}
+        >
+          {/* Header with bank branding */}
+          <div
+            className={`flex items-center p-3 border-b text-white ${collapsed ? 'justify-center' : 'justify-between'}`}
+            style={{ backgroundColor: account.primaryColor, borderColor: `${account.primaryColor}30` }}
+          >
+            {!collapsed && (
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div
+                  className="w-7 h-7 rounded flex items-center justify-center text-white font-bold text-sm"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+                >
+                  {account.templateName.charAt(0)}
+                </div>
+                <div>
+                  <div className="text-sm font-bold leading-tight">{account.templateName}</div>
+                  <div className="text-[10px] opacity-60">{account.countryCode}</div>
+                </div>
+              </div>
+            )}
+            {collapsed && (
+              <div
+                className="w-7 h-7 rounded flex items-center justify-center text-white font-bold text-xs"
+                style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+              >
+                {account.templateName.charAt(0)}
+              </div>
+            )}
+            <button
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  setMobileOpen(false)
+                } else {
+                  setCollapsed(!collapsed)
+                }
+              }}
+              className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition rounded hover:bg-white/10"
+            >
+              {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+          </div>
+
+          {/* Account summary */}
+          {!collapsed && (
+            <div className="px-3 py-2.5 border-b" style={{ borderColor: `${account.primaryColor}20`, backgroundColor: `${account.primaryColor}08` }}>
+              <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Available Balance</div>
+              <div className="text-lg font-bold" style={{ color: account.primaryColor }}>
+                {account.symbol}{account.balance.toLocaleString()}.00
+              </div>
+              <div className="text-[10px] text-gray-400">{account.currency} · {account.accountHolder}</div>
+            </div>
+          )}
+
+          {/* Collapsed: show balance as icon */}
+          {collapsed && (
+            <div className="py-1.5 border-b text-center" style={{ borderColor: `${account.primaryColor}20`, backgroundColor: `${account.primaryColor}08` }}>
+              <div className="text-[9px] font-bold" style={{ color: account.primaryColor }}>
+                {account.symbol}{(account.balance / 1000).toFixed(0)}k
+              </div>
+            </div>
+          )}
+
+          {/* SIDEBAR ITEMS */}
+          <nav className="flex-1 overflow-y-auto py-2">
+            <div className="px-1">
+              {DASHBOARD_SIDEBAR_ITEMS.map(item => {
+                const isActive = activeTab === item.id
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNav(location.pathname, item.id)}
+                    className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm font-medium transition-all mb-0.5 ${
+                      isActive
+                        ? 'text-white'
+                        : 'text-white/60 hover:text-white hover:bg-white/5'
+                    }`}
+                    style={{
+                      backgroundColor: isActive ? account.primaryColor : 'transparent',
+                    }}
+                  >
+                    <Icon className="w-4.5 h-4.5 w-5 h-5 flex-shrink-0" />
+                    {!collapsed && <span>{item.label}</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </nav>
+
+          {/* BOTTOM: Quick actions */}
+          {!collapsed && (
+            <div className="p-2 border-t" style={{ borderColor: `${account.primaryColor}20` }}>
+              {/* Back to MultiBank */}
+              <button
+                onClick={() => navigate('/')}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-white/50 hover:text-white hover:bg-white/5 transition"
+              >
+                <div className="w-4 h-4 bg-blue-500 rounded flex items-center justify-center text-[8px] font-bold text-white">MB</div>
+                <span>Back to MultiBank</span>
+              </button>
+              {/* Logout */}
+              <button
+                onClick={() => navigate('/')}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-white/50 hover:text-white hover:bg-white/5 transition mt-1"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
+        </aside>
+      </>
+    )
   }
 
-  // Close sidebar on mobile when navigating
-  useEffect(() => {
-    setMobileOpen(false)
-  }, [location.pathname])
-
+  // ============ NORMAL SIDEBAR (for non-dashboard pages) ============
   return (
     <>
       {/* Mobile overlay */}
@@ -188,7 +384,11 @@ export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarP
         {/* NAVIGATION */}
         {!collapsed && (
           <div className="p-2 mt-2">
-            {navItems.map(item => {
+            {[
+              { path: '/', label: 'Home', icon: Home },
+              { path: '/templates', label: 'Templates', icon: LayoutGrid },
+              { path: '/admin', label: 'Admin Panel', icon: BarChart3 },
+            ].map(item => {
               const isActive =
                 item.path === '/' ? isLanding : location.pathname === item.path
               const Icon = item.icon
@@ -202,7 +402,7 @@ export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarP
                       : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                   }`}
                 >
-                  <Icon className="w-4.5 h-4.5 w-5 h-5 flex-shrink-0" />
+                  <Icon className="w-5 h-5 flex-shrink-0" />
                   <span>{item.label}</span>
                 </button>
               )
@@ -213,7 +413,11 @@ export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarP
         {/* COLLAPSED NAV (icons only) */}
         {collapsed && (
           <div className="flex flex-col items-center gap-1 p-2 mt-2">
-            {navItems.map(item => {
+            {[
+              { path: '/', label: 'Home', icon: Home },
+              { path: '/templates', label: 'Templates', icon: LayoutGrid },
+              { path: '/admin', label: 'Admin Panel', icon: BarChart3 },
+            ].map(item => {
               const isActive =
                 item.path === '/' ? isLanding : location.pathname === item.path
               const Icon = item.icon
@@ -290,7 +494,7 @@ export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarP
                   <button
                     key={country}
                     onClick={() => setSelectedCountry(selectedCountry === country ? null : country)}
-                    className={`px-1.5 py-1 rounded text-[10px] font-medium transition ${
+                    className={`px-1.5 py-1 rounded text-[10px font-medium transition ${
                       selectedCountry === country
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -421,7 +625,7 @@ export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarP
               title="Your Accounts"
               className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white transition relative"
             >
-              <User className="w-5 h-5" />
+              <UserIcon className="w-5 h-5" />
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full text-[8px] flex items-center justify-center font-bold">
                 {accounts.length}
               </span>
@@ -434,7 +638,7 @@ export default function Sidebar({ collapsed: collapsedProp, onToggle }: SidebarP
           <div className="p-2 border-t border-gray-700">
             <button
               onClick={() => handleNav('/login')}
-              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition"
+              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign In</span>
