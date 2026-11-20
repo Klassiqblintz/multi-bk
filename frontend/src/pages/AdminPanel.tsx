@@ -31,6 +31,8 @@ interface AdminAccount {
   createdAt: string
 }
 
+const ALL_ACCOUNTS = JSON.parse(localStorage.getItem('multiBank_accounts') || '[]') as any[]
+
 const DUMMY_ACCOUNTS: AdminAccount[] = [
   { id: 'acc_abc123', name: 'Deutsche Bank', holder: 'Max Mustermann', balance: 47832.50, currency: 'EUR', symbol: '€', country: 'DE', status: 'active', createdAt: '2024-11-15' },
   { id: 'acc_def456', name: 'Chase', holder: 'John Smith', balance: 125430.00, currency: 'USD', symbol: '$', country: 'US', status: 'active', createdAt: '2024-11-14' },
@@ -41,6 +43,8 @@ const DUMMY_ACCOUNTS: AdminAccount[] = [
   { id: 'acc_stu901', name: 'Bank of America', holder: 'Sarah Jones', balance: 67500.00, currency: 'USD', symbol: '$', country: 'US', status: 'active', createdAt: '2024-11-09' },
   { id: 'acc_vwx234', name: 'Barclays', holder: 'Oliver Taylor', balance: 9870.00, currency: 'GBP', symbol: '£', country: 'GB', status: 'active', createdAt: '2024-11-08' },
 ]
+
+const allAccounts = ALL_ACCOUNTS.length > 0 ? ALL_ACCOUNTS : DUMMY_ACCOUNTS
 
 const COUNTRY_ICONS: Record<string, string> = {
   'DE': '🇩🇪', 'AU': '🇦🇺', 'US': '🇺🇸',
@@ -54,13 +58,13 @@ export default function AdminPanel() {
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
-  const filtered = DUMMY_ACCOUNTS.filter(acc =>
-    !search || acc.name.toLowerCase().includes(search.toLowerCase()) ||
-    acc.holder.toLowerCase().includes(search.toLowerCase())
+  const filtered = allAccounts.filter(acc =>
+    !search || (acc.name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (acc.holder || '').toLowerCase().includes(search.toLowerCase())
   )
 
-  const totalBalance = DUMMY_ACCOUNTS.reduce((sum, acc) => sum + acc.balance, 0)
-  const totalAccounts = DUMMY_ACCOUNTS.length
+  const totalBalance = allAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0)
+  const totalAccounts = allAccounts.length
 
   const handleAddFunds = (accountId: string) => {
     const amount = parseFloat(addAmount)
@@ -74,28 +78,6 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* HEADER */}
-      <header className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900">Admin Panel</h1>
-                <p className="text-xs text-gray-400">Manage all bank accounts</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
-                ← Back to Site
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* TOAST */}
         {toast && (

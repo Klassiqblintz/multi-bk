@@ -86,7 +86,6 @@ export default function BankDashboard() {
   const [account, setAccount] = useState<AccountData | null>(null)
   const [activeTab, setActiveTab] = useState<'home' | 'transfer' | 'cards' | 'statements' | 'settings'>('home')
   const [showBalance, setShowBalance] = useState(true)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [transactions] = useState(() => [])
   const [transferForm, setTransferForm] = useState({ recipient: '', amount: '', notes: '' })
   const [transferSuccess, setTransferSuccess] = useState(false)
@@ -296,61 +295,43 @@ export default function BankDashboard() {
     'FR': '🇫🇷', 'IT': '🇮🇹', 'GB': '🇬🇧', 'CA': '🇨🇦',
   }
 
+  // Don't render dashboard content until logged in
+  if (!isLoggedIn) return null
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* TOP NAV */}
-      <header className="sticky top-0 z-50 border-b" style={{ backgroundColor: account.primaryColor, borderColor: `${account.primaryColor}20` }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Left */}
-            <div className="flex items-center gap-3">
-              <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-white/80">
-                <MenuIcon />
-              </button>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                  {account.templateName.charAt(0)}
-                </div>
-                <span className="text-sm font-semibold text-white hidden sm:block">{account.templateName}</span>
-              </div>
+      {/* TOP BAR - per-bank themed */}
+      <header className="sticky top-0 z-40 border-b" style={{ backgroundColor: account.primaryColor, borderColor: `${account.primaryColor}30` }}>
+        <div className="flex items-center justify-between px-4 sm:px-6 h-14">
+          {/* Left: bank name */}
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-white/20 rounded flex items-center justify-center text-white font-bold text-xs">
+              {account.templateName.charAt(0)}
             </div>
+            <span className="text-sm font-semibold text-white">{account.templateName}</span>
+            <span className="text-xs text-white/50 hidden sm:inline">|</span>
+            <span className="text-xs text-white/50 hidden sm:inline">{account.accountHolder}</span>
+          </div>
 
-            {/* Center - Search */}
-            <div className="hidden md:flex flex-1 max-w-md mx-8">
-              <div className="w-full relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-                <input
-                  type="text"
-                  placeholder="Search transactions..."
-                  className="w-full pl-9 pr-4 py-1.5 bg-white/10 border border-white/10 rounded-lg text-sm text-white placeholder:text-white/40 focus:outline-none focus:bg-white/20"
-                />
-              </div>
-            </div>
-
-            {/* Right */}
-            <div className="flex items-center gap-2">
-              <button className="p-1.5 text-white/70 hover:text-white transition relative">
-                <Bell className="w-5 h-5" />
-                <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-400 rounded-full" />
-              </button>
-              <button className="p-1.5 text-white/70 hover:text-white transition">
-                <User className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setShowAddFunds(!showAddFunds)}
-                className="p-1.5 text-white/70 hover:text-white transition"
-                title="Add funds (admin)"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setIsLoggedIn(false)}
-                className="p-1.5 text-white/70 hover:text-white transition"
-                title="Logout"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
-            </div>
+          {/* Right actions */}
+          <div className="flex items-center gap-1">
+            <button onClick={() => setShowBalance(!showBalance)} className="p-1.5 text-white/70 hover:text-white transition" title="Toggle balance">
+              {showBalance ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={() => setShowAddFunds(!showAddFunds)}
+              className="p-1.5 text-white/70 hover:text-white transition"
+              title="Add funds (admin)"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setIsLoggedIn(false)}
+              className="p-1.5 text-white/70 hover:text-white transition"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
