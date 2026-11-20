@@ -14,8 +14,11 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* Landing page renders full-screen, no sidebar */}
+          <Route path="/" element={<LandingPage />} />
+
+          {/* All other routes use the sidebar layout */}
           <Route element={<MainLayout />}>
-            <Route path="/" element={<LandingPage />} />
             <Route path="/templates" element={<TemplatePicker />} />
             <Route path="/accounts" element={<MyAccounts />} />
             <Route path="/create" element={<AccountCreate />} />
