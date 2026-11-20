@@ -1,658 +1,292 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import {
-  Building2,
-  Globe,
-  Shield,
-  Zap,
-  ArrowRight,
+  Home,
+  LayoutGrid,
+  Layers,
+  BarChart3,
+  Search,
   ChevronRight,
-  Star,
-  Users,
-  Smartphone,
-  Lock,
-  PieChart,
+  ChevronDown,
   LogIn,
-  UserPlus,
-  X,
-  Mail,
-  KeyRound,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  UserPlus as UserPlusIcon,
+  LogOut,
+  ArrowLeft,
 } from 'lucide-react'
+import { BANK_TEMPLATES, type BankTemplate } from '../lib/bankTemplates'
 
-const FEATURES = [
-  { icon: Globe, title: '30+ Bank Templates', desc: 'From 8+ countries with authentic branding' },
-  { icon: Zap, title: 'Instant Setup', desc: 'Create a working bank account in seconds' },
-  { icon: Shield, title: 'Full Dashboard', desc: 'Transactions, transfers, cards & more' },
-  { icon: Smartphone, title: 'Mobile Friendly', desc: 'Looks perfect on any device' },
-  { icon: Lock, title: 'Secure Login', desc: '6-digit OTP verification' },
-  { icon: PieChart, title: 'Admin Panel', desc: 'Manage and fund accounts from anywhere' },
-]
+interface CountryGroup {
+  country: string
+  countryCode: string
+  flag: string
+  templates: BankTemplate[]
+  expanded: boolean
+}
 
-type AuthModalView = 'login' | 'register' | 'forgot' | 'resetPassword' | 'resetComplete'
+const COUNTRY_FLAGS: Record<string, string> = {
+  'Germany': '🇩🇪', 'Australia': '🇦🇺', 'USA': '🇺🇸',
+  'France': '🇫🇷', 'Italy': '🇮🇹', 'UK': '🇬🇧',
+  'Canada': '🇨🇦', 'Japan': '🇯🇵',
+}
+
+const COUNTRY_ORDER = ['Germany', 'Australia', 'USA', 'France', 'Italy', 'UK', 'Canada', 'Japan']
+
+const BANK_COLORS: Record<string, string> = {
+  'D': '#2563EB', 'C': '#EAB308', 'S': '#DC2626', 'I': '#F97316', 'W': '#059669',
+  'A': '#EF4444', 'N': '#EAB308', 'M': '#2563EB', 'B': '#059669',
+  'P': '#7C3AED', 'R': '#7C3AED', 'U': '#7C3AED', 'K': '#06B6D4',
+  'L': '#06B6D4', 'H': '#06B6D4', 'J': '#06B6D4', 'G': '#06B6D4', 'E': '#06B6D4',
+  'F': '#06B6D4', 'O': '#06B6D4',
+  'X': '#7C3AED', 'Y': '#7C3AED', 'Z': '#7C3AED',
+}
+
+function getBankColor(initial: string): string {
+  return BANK_COLORS[initial.toUpperCase()] || '#2563EB'
+}
 
 export default function LandingPage() {
-  const { userId: user, email, fullName, signIn, signUp, forgotPassword, verifyPasswordReset } = useAuth()
+  const { userId, signOut } = useAuth()
   const navigate = useNavigate()
+  const [search, setSearch] = useState('')
+  const [selectedCountryFilter, setSelectedCountryFilter] = useState<string | null>(null)
+  const [expandedCountries, setExpandedCountries] = useState<Record<string, boolean>>({})
+  const [showAccounts, setShowAccounts] = useState(true)
 
-  const [showAuthModal, setShowAuthModal] = useState(false)
-  const [authView, setAuthView] = useState<AuthModalView>('login')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [regSuccess, setRegSuccess] = useState(false)
+  // Group templates by country
+  const countries = useMemo((): CountryGroup[] => {
+    const groups: CountryGroup[] = []
+    for (const country of COUNTRY_ORDER) {
+      const templates = BANK_TEMPLATES.filter(t => t.country === country)
+      if (templates.length > 0) {
+        groups.push({
+          country,
+          countryCode: templates[0].countryCode,
+          flag: COUNTRY_FLAGS[country] || '🌍',
+          templates,
+          expanded: true,
+        })
+      }
+    }
+    return groups
+  }, [])
 
-  // Login form
-  const [loginEmail, setLoginEmail] = useState('')
-  const [loginPassword, setLoginPassword] = useState('')
-  const [showPass, setShowPass] = useState(false)
+  const filteredCountries = useMemo(() => {
+    if (!selectedCountryFilter) return countries
+    return countries.filter(c => c.country === selectedCountryFilter)
+  }, [countries, selectedCountryFilter])
 
-  // Register form
-  const [regName, setRegName] = useState('')
-  const [regEmail, setRegEmail] = useState('')
-  const [regPassword, setRegPassword] = useState('')
-  const [regConfirmPass, setRegConfirmPass] = useState('')
-  const [regError, setRegError] = useState('')
+  const filteredGroups = useMemo(() => {
+    return filteredCountries.map(c => ({
+      ...c,
+      templates: c.templates.filter(t =>
+        !search || t.name.toLowerCase().includes(search.toLowerCase()) ||
+        t.country.toLowerCase().includes(search.toLowerCase())
+      ),
+    })).filter(c => c.templates.length > 0)
+  }, [filteredCountries, search])
 
-  // Forgot / OTP forms
-  const [forgotEmail, setForgotEmail] = useState('')
-  const [generatedOtp, setGeneratedOtp] = useState('')
-  const [enteredOtp, setEnteredOtp] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmNewPassword, setConfirmNewPassword] = useState('')
-  const [otpError, setOtpError] = useState('')
-  const [otpSuccess, setOtpSuccess] = useState(false)
-  const [showOtpReveal, setShowOtpReveal] = useState(false)
-  const [showConfirmPass, setShowConfirmPass] = useState(false)
-
-  // Open auth modal
-  const openAuth = (view: AuthModalView = 'login') => {
-    setAuthView(view)
-    setShowAuthModal(true)
-    setError('')
-    setRegSuccess(false)
-    setOtpError('')
-    setOtpSuccess(false)
-    setGeneratedOtp('')
+  const toggleCountry = (country: string) => {
+    setExpandedCountries(prev => ({ ...prev, [country]: !prev[country] }))
   }
 
-  // Login
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!loginEmail || !loginPassword) return
-    setError('')
-    setLoading(true)
-    try {
-      await signIn(loginEmail, loginPassword)
-      setShowAuthModal(false)
-      navigate('/templates')
-    } catch (err: any) {
-      setError(err.message || 'Invalid email or password')
-    } finally {
-      setLoading(false)
+  const handleTemplateSelect = (template: BankTemplate) => {
+    if (userId) {
+      navigate('/accounts', { state: { selectedTemplate: template } })
+    } else {
+      navigate('/login', { state: { selectedTemplate: template } })
     }
   }
 
-  // Register
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!regName || !regEmail || !regPassword) return
-    if (regPassword !== regConfirmPass) {
-      setRegError('Passwords do not match')
-      return
-    }
-    setRegError('')
-    setRegSuccess(false)
-    setLoading(true)
-    try {
-      await signUp(regEmail, regPassword, regName)
-      setRegSuccess(true)
-      setTimeout(() => {
-        setAuthView('resetComplete')
-        setRegSuccess(false)
-      }, 1500)
-    } catch (err: any) {
-      setRegError(err.message || 'Failed to register')
-    } finally {
-      setLoading(false)
-    }
+  const handleSignIn = () => {
+    navigate('/login', { state: { selectedTemplate: null } })
   }
 
-  // Forgot password - generate OTP
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setOtpError('')
-    setOtpSuccess(false)
-    if (!forgotEmail) return
-    try {
-      const otp = await forgotPassword(forgotEmail)
-      setGeneratedOtp(otp)
-      setOtpSuccess(true)
-      setAuthView('resetPassword')
-    } catch (err: any) {
-      setOtpError(err.message || 'Failed to generate OTP')
-    }
+  const handleSignOut = () => {
+    signOut()
+    navigate('/')
   }
 
-  // Verify OTP and reset password
-  const handleVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault()
-    setOtpError('')
-    if (!enteredOtp || enteredOtp.length !== 6) {
-      setOtpError('Enter all 6 digits')
-      return
-    }
-    if (newPassword !== confirmNewPassword) {
-      setOtpError('Passwords do not match')
-      return
-    }
-    if (newPassword.length < 6) {
-      setOtpError('Password must be at least 6 characters')
-      return
-    }
-    setLoading(true)
-    try {
-      verifyPasswordReset(forgotEmail, enteredOtp, newPassword)
-      setAuthView('resetComplete')
-      setEnteredOtp('')
-      setNewPassword('')
-      setConfirmNewPassword('')
-    } catch (err: any) {
-      setOtpError(err.message || 'Invalid code or password reset failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const formatOtp = (val: string) => val.replace(/\D/g, '').slice(0, 6)
-
-  const renderInput = (
-    label: string,
-    value: string,
-    onChange: (val: string) => void,
-    type: string = 'text',
-    placeholder: string = '',
-    icon: React.ReactNode,
-    required?: boolean,
-    showToggle?: boolean,
-  ) => (
-    <div>
-      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-      <div className="relative">
-        {icon}
-        <input
-          type={type}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          className={`w-full pl-9 ${showToggle ? 'pr-10' : 'pr-4'} py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500`}
-          placeholder={placeholder}
-          required={required}
-        />
-        {showToggle && (
-          <button
-            type="button"
-            onClick={() => {
-              if (label === 'Password' || label === 'New Password') {
-                setShowPass(!showPass)
-              } else {
-                setShowConfirmPass(!showConfirmPass)
-              }
-            }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            {(label === 'Password' || label === 'New Password')
-              ? (showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />)
-              : (showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />)}
-          </button>
-        )}
-      </div>
-    </div>
-  )
-
-  // SHOW AUTH MODAL
-  if (showAuthModal) {
-    return (
-      <>
-        {/* BACKDROP */}
-        <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowAuthModal(false)} />
-        {/* MODAL */}
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            {/* HEADER */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  {authView === 'login' && 'Sign In'}
-                  {authView === 'register' && 'Create Account'}
-                  {authView === 'forgot' && 'Reset Password'}
-                  {authView === 'resetPassword' && 'Verify Code'}
-                  {authView === 'resetComplete' && 'Reset Complete'}
-                </h2>
-                <p className="text-xs text-gray-400">
-                  {authView === 'login' && 'Access your multi-banking dashboard'}
-                  {authView === 'register' && 'Join MultiBank today'}
-                  {authView === 'forgot' && 'Enter your email for a code'}
-                  {authView === 'resetPassword' && 'Enter the 6-digit code'}
-                  {authView === 'resetComplete' && 'You can now sign in'}
-                </p>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0f1e] via-[#0d1528] to-[#0a0f1e] text-white">
+      {/* LAYOUT */}
+      <div className="flex min-h-screen">
+        {/* SIDEBAR */}
+        <div className="w-80 flex-shrink-0 border-r border-white/5">
+          {/* HEADER */}
+          <div className="p-4 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <span className="text-lg font-bold text-white">MB</span>
               </div>
-              <button onClick={() => setShowAuthModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* BODY */}
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
-              {/* LOGIN VIEW */}
-              {authView === 'login' && (
-                <form onSubmit={handleLogin} className="space-y-4">
-                  {error && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-red-500" />
-                      <span className="text-sm text-red-600">{error}</span>
-                    </div>
-                  )}
-                  {renderInput('Email', loginEmail, setLoginEmail, 'email', 'your@email.com', <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, true)}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type={showPass ? 'text' : 'password'}
-                        value={loginPassword}
-                        onChange={e => setLoginPassword(e.target.value)}
-                        className="w-full pl-9 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                        placeholder="••••••••"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPass(!showPass)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={loading || !loginEmail || !loginPassword}
-                    className="w-full bg-blue-600 text-white font-medium py-2.5 rounded-lg hover:bg-blue-700 transition-all text-base flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign In'}
-                  </button>
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => { setAuthView('forgot'); setError(''); setOtpError(''); }}
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
-                  <div className="text-center pt-2 border-t border-gray-100">
-                    <p className="text-xs text-gray-400">
-                      Don't have an account?{' '}
-                      <button type="button" onClick={() => { setAuthView('register'); setRegError(''); }} className="text-blue-600 hover:underline">
-                        Create one
-                      </button>
-                    </p>
-                  </div>
-                </form>
-              )}
-
-              {/* REGISTER VIEW */}
-              {authView === 'register' && (
-                <form onSubmit={handleRegister} className="space-y-4">
-                  {regError && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-red-500" />
-                      <span className="text-sm text-red-600">{regError}</span>
-                    </div>
-                  )}
-                  {renderInput('Full Name', regName, setRegName, 'text', 'John Doe', <UserPlusIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />)}
-                  {renderInput('Email', regEmail, setRegEmail, 'email', 'your@email.com', <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />)}
-                  {renderInput('Password', regPassword, setRegPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, true)}
-                  {renderInput('Confirm Password', regConfirmPass, setRegConfirmPass, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, true)}
-                  <button
-                    type="submit"
-                    disabled={loading || !regName || !regEmail || !regPassword}
-                    className="w-full bg-green-600 text-white font-medium py-2.5 rounded-lg hover:bg-green-700 transition-all text-base flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Account'}
-                  </button>
-                  <div className="text-center pt-2 border-t border-gray-100">
-                    <p className="text-xs text-gray-400">
-                      Already have an account?{' '}
-                      <button type="button" onClick={() => { setAuthView('login'); setRegError(''); }} className="text-blue-600 hover:underline">
-                        Sign in
-                      </button>
-                    </p>
-                  </div>
-                </form>
-              )}
-
-              {/* FORGOT PASSWORD - ENTER EMAIL */}
-              {authView === 'forgot' && (
-                <div className="space-y-4">
-                  {otpError && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-red-500" />
-                      <span className="text-sm text-red-600">{otpError}</span>
-                    </div>
-                  )}
-                  {otpSuccess && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
-                      <span className="text-sm text-green-600">Code generated! Copy it below.</span>
-                    </div>
-                  )}
-                  <form onSubmit={handleForgotPassword} className="space-y-4">
-                    {renderInput('Email Address', forgotEmail, setForgotEmail, 'email', 'your@email.com', <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, true)}
-                    <button
-                      type="submit"
-                      disabled={loading || !forgotEmail}
-                      className="w-full bg-amber-500 text-white font-medium py-2.5 rounded-lg hover:bg-amber-600 transition-all text-base flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Generate 6-Digit Code'}
-                    </button>
-                  </form>
-                  {otpSuccess && generatedOtp && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="text-xs text-gray-500 mb-1.5 text-center">Your 6-digit verification code</div>
-                      <div className="flex justify-center gap-2">
-                        {generatedOtp.split('').map((digit, i) => (
-                          <div key={i} className="w-10 h-12 bg-white border-2 border-blue-200 rounded-lg flex items-center justify-center text-xl font-bold text-blue-600">
-                            {digit}
-                          </div>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => setShowOtpReveal(!showOtpReveal)}
-                        className="mt-2 text-xs text-gray-400 hover:text-gray-600 w-full text-center"
-                      >
-                        {showOtpReveal ? 'Hide code' : 'Tap to reveal'}
-                      </button>
-                      <p className="text-xs text-gray-400 text-center mt-2">Valid for 5 minutes</p>
-                    </div>
-                  )}
-                  <div className="text-center pt-2 border-t border-gray-100">
-                    <button
-                      type="button"
-                      onClick={() => { setAuthView('login'); setOtpError(''); setOtpSuccess(false); setGeneratedOtp(''); setEnteredOtp(''); }}
-                      className="text-xs text-gray-400 hover:text-gray-600"
-                    >
-                      ← Back to sign in
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* VERIFY OTP & RESET PASSWORD */}
-              {authView === 'resetPassword' && (
-                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  {otpError && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-red-500" />
-                      <span className="text-sm text-red-600">{otpError}</span>
-                    </div>
-                  )}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">6-Digit Code</label>
-                    <input
-                      type="text"
-                      value={enteredOtp}
-                      onChange={e => setEnteredOtp(formatOtp(e.target.value))}
-                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-center text-2xl font-bold tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-                      placeholder="000000"
-                      maxLength={6}
-                      autoFocus
-                    />
-                  </div>
-                  {renderInput('New Password', newPassword, setNewPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, true)}
-                  {renderInput('Confirm New Password', confirmNewPassword, setConfirmNewPassword, 'password', 'Min 6 characters', <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />, undefined, true)}
-                  <button
-                    type="submit"
-                    disabled={loading || enteredOtp.length !== 6 || !newPassword}
-                    className="w-full bg-purple-600 text-white font-medium py-2.5 rounded-lg hover:bg-purple-700 transition-all text-base flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reset Password'}
-                  </button>
-                </form>
-              )}
-
-              {/* RESET COMPLETE */}
-              {authView === 'resetComplete' && (
-                <div className="text-center py-6">
-                  <div className="w-16 h-16 bg-green-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-                    <CheckCircle2 className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">Password Reset!</h3>
-                  <p className="text-sm text-gray-400 mb-6">Your password has been updated successfully</p>
-                  <Link
-                    to="/login"
-                    className="inline-block w-full bg-blue-600 text-white font-medium py-2.5 rounded-lg hover:bg-blue-700 transition-all text-base"
-                    onClick={() => setShowAuthModal(false)}
-                  >
-                    Sign In with New Password
-                  </Link>
-                </div>
-              )}
+              <div>
+                <div className="text-lg font-bold tracking-tight">MultiBank</div>
+                <div className="text-[11px] text-white/40 font-medium">Global Banking Suite</div>
+              </div>
+              <Link to="/" className="ml-auto w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 transition">
+                <ArrowLeft className="w-4 h-4 text-white/40" />
+              </Link>
             </div>
           </div>
-        </div>
-      </>
-    )
-  }
 
-  // SHOW LANDING PAGE
-  return (
-    <div className="min-h-screen bg-white">
-      {/* NAV BAR */}
-      <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-white" />
+          {/* NAVIGATION */}
+          <nav className="p-3 space-y-0.5">
+            <a href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition text-sm font-medium">
+              <Home className="w-5 h-5" />
+              Home
+            </a>
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/30 text-sm font-medium">
+              <LayoutGrid className="w-5 h-5" />
+              Templates
+              <ChevronRight className="w-4 h-4 ml-auto opacity-60" />
             </div>
-            <span className="text-lg font-bold text-gray-900">MultiBank</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            {!user ? (
-              <>
+            <Link to="/admin" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition text-sm font-medium">
+              <Layers className="w-5 h-5" />
+              Admin Panel
+            </Link>
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition text-sm font-medium">
+              <BarChart3 className="w-5 h-5" />
+              Analytics
+            </div>
+          </nav>
+
+          {/* TEMPLATES SECTION */}
+          <div className="px-4 mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] uppercase tracking-wider font-semibold text-white/30">TEMPLATES</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-white/40">Show Accounts</span>
                 <button
-                  onClick={() => openAuth('login')}
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 flex items-center gap-1.5 px-3 py-1.5"
+                  onClick={() => setShowAccounts(!showAccounts)}
+                  className={`w-8 h-4 rounded-full transition-all ${showAccounts ? 'bg-blue-500' : 'bg-white/10'}`}
                 >
-                  <LogIn className="w-3.5 h-3.5" /> Sign In
+                  <div className={`w-3.5 h-3.5 bg-white rounded-full shadow transition-transform ${showAccounts ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
                 </button>
+              </div>
+            </div>
+
+            {/* SEARCH */}
+            <div className="relative mb-2">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search banks, e.g. Deutsche Bank..."
+                className="w-full pl-7 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/40 focus:bg-white/10 transition"
+              />
+            </div>
+
+            {/* COUNTRY FILTERS */}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              <button
+                onClick={() => setSelectedCountryFilter(null)}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                  !selectedCountryFilter
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-white/5 text-white/30 hover:bg-white/10 hover:text-white/50'
+                }`}
+              >
+                All
+              </button>
+              {countries.map(c => (
                 <button
-                  onClick={() => openAuth('register')}
-                  className="text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+                  key={c.country}
+                  onClick={() => setSelectedCountryFilter(selectedCountryFilter === c.country ? null : c.country)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                    selectedCountryFilter === c.country
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-white/5 text-white/30 hover:bg-white/10 hover:text-white/50'
+                  }`}
                 >
-                  <UserPlus className="w-3.5 h-3.5" /> Register
+                  <span className="text-xs">{c.flag}</span>
+                  {c.country}
                 </button>
-              </>
+              ))}
+            </div>
+
+            {/* COUNTRY GROUPS */}
+            <div className="space-y-1.5 max-h-[55vh] overflow-y-auto pr-1 custom-scrollbar">
+              {filteredGroups.map(group => {
+                const isExpanded = expandedCountries[group.country] ?? true
+                const color = getBankColor(group.country.charAt(0))
+
+                return (
+                  <div key={group.country}>
+                    {/* COUNTRY HEADER */}
+                    <button
+                      onClick={() => toggleCountry(group.country)}
+                      className="w-full flex items-center justify-between px-3 py-2 bg-gradient-to-r from-white/[0.06] to-white/[0.02] rounded-xl hover:from-white/[0.08] hover:to-white/[0.04] transition"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{group.flag}</span>
+                        <span className="text-sm font-semibold text-white/80">{group.country}</span>
+                        <span className="text-[10px] text-white/25 font-medium">({group.templates.length})</span>
+                      </div>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-white/20 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                    {/* BANK LIST */}
+                    {isExpanded && (
+                      <div className="mt-1 space-y-0.5 px-1">
+                        {group.templates.map(template => {
+                          const initial = template.name.charAt(0).toUpperCase()
+                          const bankColor = getBankColor(initial)
+
+                          return (
+                            <button
+                              key={template.id}
+                              onClick={() => handleTemplateSelect(template)}
+                              className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-white/5 transition text-left"
+                            >
+                              <div
+                                className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+                                style={{ backgroundColor: bankColor }}
+                              >
+                                {initial}
+                              </div>
+                              <span className="text-sm text-white/70 font-medium">{template.name}</span>
+                              <ChevronRight className="w-3.5 h-3.5 text-white/15 ml-auto" />
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* BOTTOM - SIGN IN */}
+          <div className="p-3 mt-auto border-t border-white/10">
+            {userId ? (
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition text-sm font-medium"
+              >
+                <LogOut className="w-5 h-5" />
+                Sign Out
+              </button>
             ) : (
-              <Link to="/templates" className="text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg">
-                Get Started →
-              </Link>
+              <button
+                onClick={handleSignIn}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition text-sm font-medium"
+              >
+                <LogIn className="w-5 h-5" />
+                Sign In
+              </button>
             )}
           </div>
         </div>
-      </nav>
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-50" />
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-indigo-200 rounded-full blur-3xl" />
-        </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-32">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-full text-blue-600 text-sm font-medium mb-6">
-                <Zap className="w-3.5 h-3.5" />
-                30+ Bank Templates — 8 Countries
-              </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                Create Your
-                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"> Fake Bank </span>
-                Account Instantly
-              </h1>
-              <p className="mt-6 text-lg text-gray-600 max-w-lg">
-                Choose from 30+ realistic bank templates from Germany, Australia, USA, France, Italy, UK & Canada. Customize, set your balance, and get a fully functional banking dashboard.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link to="/templates" className="bg-blue-600 text-white px-7 py-3 rounded-lg hover:bg-blue-700 transition-all text-base flex items-center gap-2 font-medium">
-                  Browse Templates <ChevronRight className="w-4 h-4" />
-                </Link>
-                <Link to="/admin" className="bg-gray-100 text-gray-700 px-7 py-3 rounded-lg hover:bg-gray-200 transition-all text-base font-medium">
-                  Admin Panel
-                </Link>
-              </div>
-              <div className="mt-8 flex items-center gap-6 text-sm text-gray-500">
-                <div className="flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-blue-500" />
-                  <span>2,800+ accounts created</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Star className="w-4 h-4 text-yellow-400" />
-                  <span>4.9/5 rating</span>
-                </div>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-                <div className="bg-gray-50 border-b border-gray-100 px-4 py-2 flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-                  <div className="flex-1 ml-2 bg-white rounded px-3 py-1 text-xs text-gray-400 font-mono">
-                    your-bank-secure.com/dashboard
-                  </div>
-                </div>
-                <div className="p-4">
-                  <div className="flex gap-3 mb-3">
-                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                      <Building2 className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-gray-900">Deutsche Bank</div>
-                      <div className="text-xs text-gray-400">Personal Account</div>
-                    </div>
-                  </div>
-                  <div className="bg-blue-50 rounded-xl p-4 mb-3">
-                    <div className="text-xs text-blue-600 mb-1">Available Balance</div>
-                    <div className="text-2xl font-bold text-blue-700">€47,832.50</div>
-                  </div>
-                  <div className="flex gap-2 mb-3">
-                    <div className="flex-1 bg-gray-50 rounded-lg p-2 text-center">
-                      <div className="text-xs text-gray-400">Transfers</div>
-                      <div className="text-xs font-bold text-gray-700">Send</div>
-                    </div>
-                    <div className="flex-1 bg-gray-50 rounded-lg p-2 text-center">
-                      <div className="text-xs text-gray-400">Cards</div>
-                      <div className="text-xs font-bold text-gray-700">Manage</div>
-                    </div>
-                    <div className="flex-1 bg-gray-50 rounded-lg p-2 text-center">
-                      <div className="text-xs text-gray-400">Statements</div>
-                      <div className="text-xs font-bold text-gray-700">View</div>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-600">Incoming</span>
-                      <span className="font-mono text-gray-900">+€2,450.00</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-600">Outgoing</span>
-                      <span className="font-mono text-gray-900">-€380.00</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-green-400/20 rounded-full blur-xl" />
-              <div className="absolute -top-4 -left-4 w-24 h-24 bg-blue-400/20 rounded-full blur-xl" />
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* FEATURES */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
-              Everything You Need
-            </h2>
-            <p className="text-lg text-gray-500">A complete fake banking experience</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {FEATURES.map(feature => (
-              <div key={feature.title} className="group p-6 rounded-2xl bg-gray-50 hover:bg-blue-50 transition-all duration-300">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 transition-all duration-300">
-                  <feature.icon className="w-6 h-6 text-blue-600 group-hover:text-white transition-all duration-300" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1.5">{feature.title}</h3>
-                <p className="text-sm text-gray-500">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
+        {/* MAIN CONTENT - BLURRED BG */}
+        <div className="flex-1 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5" />
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl" />
         </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
-              How It Works
-            </h2>
-            <p className="text-lg text-gray-500">Three simple steps to your fake bank account</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {[
-              { step: '01', title: 'Choose a Template', desc: 'Browse our 30+ authentic bank templates from around the world' },
-              { step: '02', title: 'Customize Your Account', desc: 'Set your name, balance, currency and make it yours' },
-              { step: '03', title: 'Go Live', desc: 'Your fully functional fake bank is ready to use' },
-            ].map(item => (
-              <div key={item.step} className="relative">
-                <div className="text-6xl font-bold text-blue-100 mb-2">0{item.step}</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-1.5">{item.title}</h3>
-                <p className="text-sm text-gray-500">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Building2 className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-lg font-bold">MultiBank</span>
-            </div>
-            <div className="flex gap-6 text-sm text-gray-400">
-              <a href="#" className="hover:text-white transition">Templates</a>
-              <a href="#" className="hover:text-white transition">Features</a>
-              <a href="/admin" className="hover:text-white transition">Admin</a>
-              <a href="#" className="hover:text-white transition">About</a>
-            </div>
-            <div className="text-sm text-gray-400">
-              © 2026 MultiBank. All rights reserved.
-            </div>
-          </div>
-        </div>
-      </footer>
+      </div>
     </div>
   )
 }
